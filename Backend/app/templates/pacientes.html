@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 style="color: var(--azul-medio); font-family: 'Raleway', sans-serif;">Gestión de Pacientes</h3>
+            <p class="text-muted mb-0">Listado general de pacientes registrados en el sistema S.I.G.A.P.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Documento</th>
+                            <th>Nombres y Apellidos</th>
+                            <th>Género</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if pacientes %}
+                            {% for p in pacientes %}
+                            <tr>
+                                <td>{{ p.id_paciente }}</td>
+                                <td>{{ p.tipo_documento }} {{ p.numero_documento }}</td>
+                                <td><strong>{{ p.nombres }} {{ p.apellidos }}</strong></td>
+                                <td>{{ p.genero or 'No especificado' }}</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        {{ p.estado or 'Activo' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('pacientes.detalle', id=p.id_paciente) }}" class="btn btn-sm btn-outline-primary">
+                                        Ver Historial
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No se encuentran pacientes registrados.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

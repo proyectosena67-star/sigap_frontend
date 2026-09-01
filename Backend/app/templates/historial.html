@@ -1,0 +1,95 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="container-fluid p-4">
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <!-- Barra de búsqueda de pacientes -->
+            <form method="GET" action="{{ url_for('pacientes.historial') }}" class="input-group">
+                <input type="text" name="busqueda" class="form-control" placeholder="Buscar paciente por nombre o documento..." value="{{ request.args.get('busqueda', '') }}">
+                <button class="btn btn-primary" type="submit">Buscar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Lista lateral de pacientes encontrados -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <strong>Pacientes Encontrados</strong>
+                </div>
+                <ul class="list-group list-group-flush" style="max-height: 500px; overflow-y: auto;">
+                    {% if pacientes %}
+                        {% for p in pacientes %}
+                            <a href="{{ url_for('pacientes.historial', paciente_id=p.id_paciente) }}" class="list-group-item list-group-item-action {% if paciente and paciente.id_paciente == p.id_paciente %}active{% endif %}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ p.primer_nombre }} {{ p.primer_apellido }}</h6>
+                                    <small>{{ p.numero_documento }}</small>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-muted text-center py-3">No se encontraron pacientes.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Detalle del Paciente e Historial -->
+        <div class="col-md-8">
+            {% if paciente %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h4 class="card-title text-primary">{{ paciente.primer_nombre }} {{ paciente.segundo_nombre or '' }} {{ paciente.primer_apellido }} {{ paciente.segundo_apellido or '' }}</h4>
+                        <p class="text-muted mb-1"><strong>Documento:</strong> {{ paciente.tipo_documento }} {{ paciente.numero_documento }}</p>
+                        <p class="text-muted mb-1"><strong>Género:</strong> {{ paciente.genero or 'No especificado' }}</p>
+                        <p class="text-muted mb-0"><strong>Aseguradora:</strong> {{ paciente.aseguradora_nombre or 'Particular' }}</p>
+                    </div>
+                </div>
+
+                <!-- Formulario para nueva nota clínica -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Registrar Evolución Clínica</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('pacientes.guardar_nota') }}">
+                            <input type="hidden" name="id_atencion" value="{{ paciente.id_historial or 1 }}">
+                            <div class="mb-3">
+                                <label class="form-label">Subjetivo / Nota:</label>
+                                <textarea class="form-control" name="subjetivo" rows="3" required placeholder="Escribe una nueva nota clínica..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar Nota</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Historial de notas -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Notas Clínicas Registradas</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if historial %}
+                            {% for nota in historial %}
+                                <div class="border-bottom pb-3 mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Dr. {{ nota.autor_nombre }} {{ nota.autor_apellido }} ({{ nota.rol_autor }})</strong>
+                                        <small class="text-muted">{{ nota.fecha_registro }}</small>
+                                    </div>
+                                    <p class="mt-2 mb-1"><strong>{{ nota.tipo_nota }}:</strong> {{ nota.subjetivo }}</p>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center py-3">No hay notas clínicas registradas para este paciente.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center">Selecciona un paciente de la lista o realiza una búsqueda para ver su historial clínico.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

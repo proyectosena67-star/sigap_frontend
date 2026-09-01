@@ -1,0 +1,52 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="p-4">
+    <h3 style="color: var(--azul-medio); font-family: 'Raleway', sans-serif;">Medicamentos e Insumos</h3>
+    <p class="text-muted">Módulo de control de inventario y medicamentos.</p>
+
+    <!-- Tabla para listar los datos -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre Genérico</th>
+                            <th>Tipo</th>
+                            <th>Forma Farmacéutica</th>
+                            <th>Concentración</th>
+                            <th>Stock Actual</th>
+                            <th>Stock Mínimo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if medicamentos %}
+                            {% for med in medicamentos %}
+                            <tr>
+                                <td>{{ med.id_item }}</td>
+                                <td><strong>{{ med.nombre_generico }}</strong></td>
+                                <td>{{ med.tipo_item }}</td>
+                                <td>{{ med.presentacion or 'N/A' }}</td>
+                                <td>{{ med.concentracion or 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {% if med.stock_actual <= med.stock_minimo %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ med.stock_actual }}
+                                    </span>
+                                </td>
+                                <td>{{ med.stock_minimo }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">No hay medicamentos registrados en el sistema.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
