@@ -1,153 +1,155 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, flash
 from app import get_db_connection, release_db_connection
-from app.utils import login_required, role_required, registrar_auditoria
 
 pacientes_bp = Blueprint('pacientes', __name__)
 
-@pacientes_bp.route('/historial', methods=['GET'])
-@login_required
-def historial():
-    paciente_id = request.args.get('paciente_id', type=int)
-    busqueda = request.args.get('busqueda', '').strip()
-    registros_historial = []
-    paciente_info = None
-    lista_pacientes = []
-    conn = None
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        if busqueda:
-            cursor.execute('''
-                SELECT id_paciente, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, numero_documento 
-                FROM pacientes 
-                WHERE CONCAT_WS(' ', primer_nombre, segundo_nombre, primer_apellido, segundo_apellido) ILIKE %s 
-                   OR numero_documento ILIKE %s
-                ORDER BY primer_apellido ASC
-            ''', (f"%{busqueda}%", f"%{busqueda}%"))
-        else:
-            cursor.execute("SELECT id_paciente, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, numero_documento FROM pacientes ORDER BY primer_apellido ASC LIMIT 50")
-            
-        lista_pacientes = cursor.fetchall()
-
-        if paciente_id:
-            cursor.execute('''
-                SELECT p.*, a.nombre AS aseguradora_nombre, h.id_historial
-                FROM pacientes p
-                LEFT JOIN aseguradoras a ON p.id_aseguradora = a.id_aseguradora
-                LEFT JOIN historial_clinico h ON p.id_paciente = h.id_paciente
-                WHERE p.id_paciente = %s
-            ''', (paciente_id,))
-        elif lista_pacientes:
-            cursor.execute('''
-                SELECT p.*, a.nombre AS aseguradora_nombre, h.id_historial
-                FROM pacientes p
-                LEFT JOIN aseguradoras a ON p.id_aseguradora = a.id_aseguradora
-                LEFT JOIN historial_clinico h ON p.id_paciente = h.id_paciente
-                WHERE p.id_paciente = %s
-            ''', (lista_pacientes[0]['id_paciente'],))
-        
-        paciente_info = cursor.fetchone()
-
-        if paciente_info and paciente_info.get('id_historial'):
-            cursor.execute('''
-                SELECT n.id_nota, n.subjetivo, n.objetivo, n.analisis, n.plan, n.fecha_registro,
-                       n.tipo_nota, u.nombres AS autor_nombre, u.apellidos AS autor_apellido, r.nombre AS rol_autor
-                FROM notas_clinicas n
-                JOIN atenciones at ON n.id_atencion = at.id_atencion
-                JOIN usuarios u ON n.id_medico = u.id_usuario
-                JOIN roles r ON u.id_rol = r.id_rol
-                WHERE at.id_historial = %s
-                ORDER BY n.id_nota DESC
-            ''', (paciente_info['id_historial'],))
-            registros_historial = cursor.fetchall()
-
-        cursor.close()
-    except Exception as e:
-        flash(f"Error al cargar el historial clínico: {str(e)}", "warning")
-    finally:
-        if conn: release_db_connection(conn)
-
-    return render_template('historial.html', 
-                           historial=registros_historial, 
-                           paciente=paciente_info, 
-                           pacientes=lista_pacientes)
-
-@pacientes_bp.route('/guardar_paciente', methods=['POST'])
-@login_required
-@role_required(['Medico', 'Administrador', 'Enfermera'])
-def guardar_paciente():
-    tipo_doc = request.form.get('tipo_documento')
-    num_doc = request.form.get('numero_documento')
-    primer_nombre = request.form.get('primer_nombre')
-    segundo_nombre = request.form.get('segundo_nombre', '')
-    primer_apellido = request.form.get('primer_apellido')
-    segundo_apellido = request.form.get('segundo_apellido', '')
-    fecha_nacimiento = request.form.get('fecha_nacimiento')
-    genero = request.form.get('genero')
-    id_aseguradora = request.form.get('id_aseguradora', 1)
+@pacientes_bp.route('/pacientes', methods=['GET'])
+def pacientes():
+    # 1. Parámetros de búsqueda y filtrado desde la URL
+    search_query = request.args.get('q', '').strip()
+    filtro_estado = request.args.get('estado', 'todos').lower()
+    id_seleccionado = request.args.get('id', type=int)
+    
+    pacientes = []
+    paciente_activo = None
+    total_registrados = 0
+    total_hospitalizados = 0
+    ultimo_ingreso = None
 
     conn = None
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO pacientes (tipo_documento, numero_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, genero, id_aseguradora)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id_paciente
-        ''', (tipo_doc, num_doc, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, genero, id_aseguradora))
-        
-        nuevo_paciente = cursor.fetchone()
-        
-        cursor.execute('''
-            INSERT INTO historial_clinico (id_paciente, fecha_apertura)
-            VALUES (%s, NOW())
-        ''', (nuevo_paciente['id_paciente'],))
+        with conn.cursor() as cur:
+            # 2. Consulta principal ajustada al esquema sigam_db
+            query_sql = """
+                SELECT 
+                    p.id_paciente, 
+                    p.tipo_documento, 
+                    p.numero_documento, 
+                    p.primer_nombre,
+                    p.primer_apellido,
+                    TRIM(CONCAT(p.primer_nombre, ' ', p.segundo_nombre, ' ', p.primer_apellido, ' ', p.segundo_apellido)) AS nombre,
+                    CASE 
+                        WHEN p.fecha_nacimiento IS NOT NULL 
+                        THEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.fecha_nacimiento))::INT 
+                        ELSE NULL 
+                    END AS edad,
+                    p.sexo_biologico AS genero, 
+                    
+                    -- Estado dinámico según atenciones activas
+                    CASE 
+                        WHEN a_hosp.id_atencion IS NOT NULL THEN 'Hospitalizado'
+                        WHEN p.estado IS NOT NULL AND p.estado != '' THEN p.estado
+                        ELSE 'Alta'
+                    END AS estado,
+                    
+                    -- Último diagnóstico registrado en la tabla diagnosticos
+                    COALESCE(d.descripcion, 'Sin diagnóstico') AS diagnostico,
+                    p.fecha_registro
+                FROM pacientes p
+                
+                -- Verificar si el paciente está actualmente en hospitalización (En Proceso)
+                LEFT JOIN LATERAL (
+                    SELECT a.id_atencion 
+                    FROM historial_clinico hc
+                    JOIN atenciones a ON hc.id_historial = a.id_historial
+                    WHERE hc.id_paciente = p.id_paciente 
+                      AND a.tipo_atencion = 'Hospitalizacion'
+                      AND a.estado = 'En Proceso'
+                    ORDER BY a.id_atencion DESC
+                    LIMIT 1
+                ) a_hosp ON TRUE
+                
+                -- Obtener el diagnóstico de la última atención registrada
+                LEFT JOIN LATERAL (
+                    SELECT diag.descripcion 
+                    FROM historial_clinico hc
+                    JOIN atenciones a ON hc.id_historial = a.id_historial
+                    JOIN diagnosticos diag ON a.id_atencion = diag.id_atencion
+                    WHERE hc.id_paciente = p.id_paciente
+                    ORDER BY a.id_atencion DESC, diag.id_diagnostico DESC
+                    LIMIT 1
+                ) d ON TRUE
+                
+                WHERE 1=1
+            """
+            params = []
 
-        registrar_auditoria(cursor, session['usuario_id'], 'INSERT_PACIENTE', f'Registro de paciente ID: {nuevo_paciente["id_paciente"]}')
-        conn.commit()
-        cursor.close()
-        flash("Paciente e historial clínico registrados con éxito.", "success")
+            # Filtro de búsqueda por nombre, apellido o número de documento
+            if search_query:
+                query_sql += """
+                    AND (
+                        p.primer_nombre ILIKE %s OR 
+                        p.primer_apellido ILIKE %s OR 
+                        p.numero_documento ILIKE %s
+                    )
+                """
+                pattern = f"%{search_query}%"
+                params.extend([pattern, pattern, pattern])
+
+            # Filtro según la pestaña activa
+            if filtro_estado == 'hospitalizados':
+                query_sql += " AND a_hosp.id_atencion IS NOT NULL"
+            elif filtro_estado == 'alta':
+                query_sql += " AND a_hosp.id_atencion IS NULL"
+
+            query_sql += " ORDER BY p.id_paciente DESC;"
+            cur.execute(query_sql, tuple(params))
+            pacientes = cur.fetchall()
+
+            # 3. Obtener el paciente activo (si se pasa un id o el primero de la lista)
+            if id_seleccionado:
+                cur.execute("SELECT * FROM pacientes WHERE id_paciente = %s;", (id_seleccionado,))
+                paciente_activo = cur.fetchone()
+            elif pacientes:
+                paciente_activo = pacientes[0]
+
+            # 4. Indicadores para el panel lateral
+            # Total de pacientes en la base de datos
+            cur.execute("SELECT COUNT(*) AS total FROM pacientes;")
+            res_total = cur.fetchone()
+            total_registrados = res_total['total'] if res_total else 0
+
+            # Pacientes con hospitalización abierta en atenciones
+            cur.execute("""
+                SELECT COUNT(DISTINCT hc.id_paciente) AS total 
+                FROM historial_clinico hc
+                JOIN atenciones a ON hc.id_historial = a.id_historial
+                WHERE a.tipo_atencion = 'Hospitalizacion' 
+                  AND a.estado = 'En Proceso';
+            """)
+            res_hosp = cur.fetchone()
+            total_hospitalizados = res_hosp['total'] if res_hosp else 0
+
+            # Detalle del último ingreso de atención
+            cur.execute("""
+                SELECT p.primer_nombre, p.primer_apellido, a.fecha_ingreso 
+                FROM atenciones a
+                JOIN historial_clinico hc ON a.id_historial = hc.id_historial
+                JOIN pacientes p ON hc.id_paciente = p.id_paciente
+                ORDER BY a.id_atencion DESC LIMIT 1;
+            """)
+            res_ultimo = cur.fetchone()
+            if res_ultimo and res_ultimo.get('fecha_ingreso'):
+                fecha_raw = res_ultimo['fecha_ingreso']
+                fecha_str = fecha_raw.strftime('%Y-%m-%d') if hasattr(fecha_raw, 'strftime') else str(fecha_raw)
+                ultimo_ingreso = f"{res_ultimo['primer_nombre']} {res_ultimo['primer_apellido']} ({fecha_str})"
+
     except Exception as e:
-        if conn: conn.rollback()
-        flash(f"Error al registrar paciente: {str(e)}", "danger")
+        print(f"Error al consultar pacientes en PostgreSQL: {e}")
+        flash("Ocurrió un error al consultar la información de pacientes.", "danger")
     finally:
-        if conn: release_db_connection(conn)
+        if conn:
+            release_db_connection(conn)
 
-    return redirect(url_for('pacientes.historial'))
-
-@pacientes_bp.route('/guardar_nota', methods=['POST'])
-@login_required
-@role_required(['Medico', 'Psicologo'])
-def guardar_nota():
-    subjetivo = request.form.get('subjetivo', '').strip()
-    objetivo = request.form.get('objetivo', '').strip() or 'Sin novedades en examen físico'
-    analisis = request.form.get('analisis', '').strip() or 'Evolución clínica estándar'
-    plan = request.form.get('plan', '').strip() or 'Continuar manejo'
-    tipo_nota = request.form.get('tipo_nota', 'Evolución')
-    id_atencion = request.form.get('id_atencion', 1)
-
-    if subjetivo:
-        conn = None
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                INSERT INTO notas_clinicas (id_atencion, id_medico, tipo_nota, subjetivo, objetivo, analisis, plan, fecha_registro)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-            ''', (id_atencion, session['usuario_id'], tipo_nota, subjetivo, objetivo, analisis, plan))
-            
-            registrar_auditoria(cursor, session['usuario_id'], 'INSERT_NOTA', f'Nota médica registrada para atención ID: {id_atencion}')
-            conn.commit()
-            cursor.close()
-            flash("Nota médica registrada correctamente.", "success")
-        except Exception as e:
-            if conn: conn.rollback()
-            flash(f"Error al registrar la nota clínica: {str(e)}", "danger")
-        finally:
-            if conn: release_db_connection(conn)
-
-    return redirect(url_for('pacientes.historial'))
+    # 5. Renderizado final
+    return render_template(
+        'pacientes.html',
+        pacientes=pacientes,
+        paciente_activo=paciente_activo,
+        search_query=search_query,
+        filtro_estado=filtro_estado,
+        total_registrados=total_registrados,
+        total_hospitalizados=total_hospitalizados,
+        ultimo_ingreso=ultimo_ingreso
+    )

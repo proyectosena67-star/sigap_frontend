@@ -1,0 +1,158 @@
+{% extends 'layout.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/medicamentos.css') }}">
+{% endblock %}
+
+{% block contenido %}
+<div class="meds-container">
+    
+    <div class="meds-header">
+        <h2>
+            <i class="fas fa-pills icon-teal"></i> Farmacia e Inventario de Medicamentos
+        </h2>
+        <p>Control de stock físico de psicofármacos, insumos y registro de inventario.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-alert-{{ category if category != 'error' else 'danger' }}">
+              <i class="fas fa-check-circle"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="meds-grid">
+        
+        <!-- Bloque 1: Formulario de Ingreso/Actualización de Stock -->
+        <div class="meds-card">
+            <h3>
+                <i class="fas fa-plus-circle icon-muted"></i> Ingreso de Stock
+            </h3>
+            <form method="POST" action="{{ url_for('medicamentos.medicamentos') }}" class="meds-form">
+                
+                <div class="form-group">
+                    <label>Nombre Genérico / Comercial</label>
+                    <input type="text" id="nombre_medicamento" name="nombre_medicamento" 
+                           placeholder="Ingrese nombre del medicamento" list="lista-nombre-meds" 
+                           required class="meds-input" autocomplete="off" oninput="autocompletarCategoria()">
+                    
+                    <datalist id="lista-nombre-meds">
+                        {% for med in nombres_meds %}
+                            <option value="{{ med.nombre_generico }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo / Presentación (Categoría)</label>
+                    <input type="text" id="categoria_medicamento" name="categoria" 
+                           placeholder="Ej: Medicamento, Insumo Médico, Tableta" 
+                           list="categorias-existentes" required class="meds-input" autocomplete="off">
+                    
+                    <datalist id="categorias-existentes">
+                        {% for cat in categorias %}
+                            <option value="{{ cat }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label>Cantidad a añadir</label>
+                    <input type="number" name="cantidad" min="1" placeholder="Cantidad en unidades" required class="meds-input">
+                </div>
+
+                <button type="submit" class="btn-meds-submit">
+                    <i class="fas fa-save"></i> Guardar en Inventario
+                </button>
+            </form>
+        </div>
+
+        <!-- Bloque 2: Existencias Actuales y Filtros -->
+        <div class="meds-card">
+            <div class="meds-card-header-flex">
+                <h3>
+                    <i class="fas fa-boxes icon-muted"></i> Existencias Actuales
+                </h3>
+                
+                <form method="GET" action="{{ url_for('medicamentos.medicamentos') }}" class="meds-filter-form">
+                    <select name="categoria" onchange="this.form.submit()" class="meds-select-filter">
+                        <option value="">Todas las categorías</option>
+                        {% for cat in categorias %}
+                            <option value="{{ cat }}" {% if cat == categoria_sel %}selected{% endif %}>
+                                {{ cat }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            
+            <div class="meds-table-scroll">
+                <table class="meds-table">
+                    <thead>
+                        <tr>
+                            <th>Fármaco / Sustancia</th>
+                            <th>Presentación / Tipo</th>
+                            <th class="text-right">Disponibilidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in medicamentos %}
+                        <tr>
+                            <td class="med-name">
+                                <strong>{{ med.nombre_generico }}</strong>
+                                {% if med.nombre_comercial %}
+                                    <small class="text-muted">({{ med.nombre_comercial }})</small>
+                                {% endif %}
+                                {% if med.es_controlado %}
+                                    <span class="badge-controlado" title="Control Especial / Psicotrópico">💊 Controlado</span>
+                                {% endif %}
+                            </td>
+                            <td class="med-category">
+                                <span class="tag-category">{{ med.presentacion or med.tipo_item }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="badge-stock {% if med.stock_actual > 10 %}stock-high{% else %}stock-low{% endif %}">
+                                    {{ med.stock_actual }} uds
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        
+                        {% if not medicamentos %}
+                        <tr>
+                            <td colspan="3" class="meds-empty">
+                                <i class="fas fa-info-circle meds-empty-icon"></i>
+                                No hay medicamentos o insumos registrados en esta categoría.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const mapeoMeds = {{ nombres_meds | tojson | safe }};
+
+function autocompletarCategoria() {
+    const inputNombre = document.getElementById('nombre_medicamento');
+    const inputCategoria = document.getElementById('categoria_medicamento');
+    
+    if (!inputNombre || !inputCategoria) return;
+
+    const nombreIngresado = inputNombre.value.trim().toLowerCase();
+    
+    const coincidencia = mapeoMeds.find(m => m.nombre_generico && m.nombre_generico.toLowerCase() === nombreIngresado);
+    
+    if (coincidencia) {
+        inputCategoria.value = coincidencia.presentacion || coincidencia.tipo_item || '';
+    }
+}
+</script>
+{% endblock %}

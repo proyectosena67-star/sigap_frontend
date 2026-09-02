@@ -2,37 +2,61 @@ import os
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
-from flask import Flask
+from flask import Flask, g
 
+# Variable global para administrar el pool de conexiones de PostgreSQL
 db_pool = None
 
 def create_app():
     global db_pool
     
-    base_dir = os.path.abspath(os.path.dirname(__file__))
-    app = Flask(__name__, 
-                template_folder=os.path.join(base_dir, 'templates'),
-                static_folder=os.path.join(base_dir, 'static'))
+    # Obtener la ruta raíz del proyecto (subiendo dos niveles desde Backend/app)
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    
+    # Configurar Flask apuntando a las carpetas 'templates' y 'static' en Frontend
+    app = Flask(
+        __name__, 
+        template_folder=os.path.join(root_dir, 'Frontend', 'templates'),
+        static_folder=os.path.join(root_dir, 'Frontend', 'static')
+    )
                 
+    # Clave secreta para manejo de sesiones y alertas flash
     app.secret_key = os.environ.get('SECRET_KEY', 'clave_secreta_sigap_proyecto_2026')
 
+    # Parámetros de conexión a la base de datos PostgreSQL
     DB_HOST = os.environ.get("DB_HOST", "localhost")
     DB_NAME = os.environ.get("DB_NAME", "sigam_db")
     DB_USER = os.environ.get("DB_USER", "postgres")
     DB_PASS = os.environ.get("DB_PASS", "1234")
     DB_PORT = os.environ.get("DB_PORT", "5432")
 
+    # Inicialización del pool usando ThreadedConnectionPool para soportar múltiples hilos/peticiones
     try:
-        db_pool = psycopg2.pool.SimpleConnectionPool(
+        db_pool = psycopg2.pool.ThreadedConnectionPool(
             1, 20,
-            host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS, port=DB_PORT,
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASS,
+            port=DB_PORT,
             cursor_factory=RealDictCursor
         )
         print("-> Conexión a PostgreSQL (sigam_db) inicializada correctamente.")
     except Exception as e:
-        print(f"Error al conectar con PostgreSQL: {e}")
+        print(f"Error crítico al conectar con PostgreSQL: {e}")
         db_pool = None
 
+    # Teardown seguro: solo devuelve la conexión si se solicitó en 'g' y no ha sido liberada aún
+    @app.teardown_appcontext
+    def close_db_connection(exception=None):
+        conn = g.pop('db_conn', None)
+        if conn is not None and db_pool is not None and not conn.closed:
+            try:
+                db_pool.putconn(conn)
+            except psycopg2.pool.PoolError:
+                pass  # Previene excepciones si la conexión ya fue retornada manualmente
+
+    # Importación de los Blueprints (rutas modulares de S.I.G.A.P.)
     from app.routes.auth import auth_bp
     from app.routes.pacientes import pacientes_bp
     from app.routes.citas import citas_bp
@@ -47,6 +71,7 @@ def create_app():
     from app.routes.vacunacion import vacunacion_bp
     from app.routes.equipos import equipos_bp
 
+    # Registro de los Blueprints en la aplicación Flask
     app.register_blueprint(auth_bp)
     app.register_blueprint(pacientes_bp)
     app.register_blueprint(citas_bp)
@@ -63,11 +88,27 @@ def create_app():
 
     return app
 
-def get_db_connection():
-    if db_pool:
-        return db_pool.getconn()
-    raise Exception("Piscina de conexiones a base de datos no disponible.")
 
-def release_db_connection(conn):
-    if db_pool and conn:
-        db_pool.putconn(conn)
+def get_db_connection():
+    """
+    Obtiene una conexión activa desde el pool de conexiones y la asocia al contexto de la petición 'g'.
+    """
+    if 'db_conn' not in g or g.db_conn.closed:
+        if db_pool:
+            g.db_conn = db_pool.getconn()
+        else:
+            raise Exception("Piscina de conexiones a la base de datos no disponible.")
+    return g.db_conn
+
+
+def release_db_connection(conn=None):
+    """
+    Devuelve manualmente la conexión al pool si una ruta la libera antes del cierre del request.
+    """
+    if conn and db_pool and not conn.closed:
+        try:
+            db_pool.putconn(conn)
+            if hasattr(g, 'db_conn') and g.db_conn == conn:
+                g.db_conn = None
+        except psycopg2.pool.PoolError:
+            pass

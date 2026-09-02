@@ -1,0 +1,161 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="historial-layout">
+
+    <!-- PANEL IZQUIERDO: Resumen y métricas -->
+    <aside class="patient-panel">
+        <div class="patient-avatar-wrap">
+            <div class="patient-avatar">
+                <i class="fas fa-users-medical"></i>
+            </div>
+        </div>
+        <div class="patient-info text-center">
+            <h5>Módulo Pacientes</h5>
+            <p class="text-muted small">Administración global de usuarios del sistema médico, ingresos y estados clínicos.</p>
+        </div>
+        
+        <hr class="panel-divider">
+        
+        <div class="patient-info metrics-stack">
+            <div class="metric-item">
+                <span class="info-label">TOTAL REGISTRADOS</span>
+                <span class="info-value">{{ total_registrados }} pacientes</span>
+            </div>
+
+            <div class="metric-item">
+                <span class="info-label">EN HOSPITALIZACIÓN</span>
+                <span class="info-value text-primary-highlight">{{ total_hospitalizados }} activos</span>
+            </div>
+
+            <div class="metric-item">
+                <span class="info-label">ÚLTIMO INGRESO</span>
+                <span class="info-value text-highlight">
+                    {{ ultimo_ingreso if ultimo_ingreso else 'Sin registros' }}
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- PANEL DERECHO: Tabla de pacientes y búsquedas -->
+    <main class="historial-panel">
+
+        <!-- Header con Pestañas y Acción Principal -->
+        <div class="panel-header-wrap">
+            <nav class="historial-tabs">
+                <a href="{{ url_for('pacientes.pacientes', q=search_query, estado='todos') }}" 
+                   class="htab {% if filtro_estado == 'todos' or not filtro_estado %}active{% endif %}">
+                   Todos los pacientes
+                </a>
+                <a href="{{ url_for('pacientes.pacientes', q=search_query, estado='hospitalizados') }}" 
+                   class="htab {% if filtro_estado == 'hospitalizados' %}active{% endif %}">
+                   Hospitalizados
+                </a>
+                <a href="{{ url_for('pacientes.pacientes', q=search_query, estado='alta') }}" 
+                   class="htab {% if filtro_estado == 'alta' %}active{% endif %}">
+                   De Alta
+                </a>
+            </nav>
+            
+            {% if current_user and current_user.rol in ['Administrador', 'Médico Psiquiatra'] %}
+            <a href="{{ url_for('pacientes.nuevo_paciente') }}" class="btn btn-primary btn-sm btn-add-patient">
+                <i class="fas fa-user-plus me-1"></i> Nuevo Paciente
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="patients-container">
+            
+            <!-- Formulario de Búsqueda y Filtro -->
+            <form method="GET" action="{{ url_for('pacientes.pacientes') }}" class="search-filter-form mb-3">
+                <input type="hidden" name="estado" value="{{ filtro_estado }}">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="topbar-search search-input-container flex-grow-1">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="q" class="form-control-custom" placeholder="Buscar por nombre o documento..." value="{{ search_query }}">
+                    </div>
+                    <button type="submit" class="btn btn-filter">
+                        <i class="fas fa-filter me-1"></i> Filtrar
+                    </button>
+                    {% if search_query or (filtro_estado and filtro_estado != 'todos') %}
+                        <a href="{{ url_for('pacientes.pacientes') }}" class="btn btn-reset" title="Limpiar filtros">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+
+            <!-- Tabla principal de pacientes -->
+            <div class="table-responsive custom-table-wrapper">
+                <table class="table align-middle custom-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th>Nombre Completo</th>
+                            <th>Edad / Género</th>
+                            <th>Estado</th>
+                            <th>Diagnóstico</th>
+                            <th class="text-end" style="width: 100px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for p in pacientes %}
+                        {% set nombre_mostrar = p.nombre if p.nombre and p.nombre.strip() else (p.primer_nombre ~ ' ' ~ p.primer_apellido) %}
+                        <tr>
+                            <td class="td-id">#{{ p.id_paciente }}</td>
+                            <td class="td-name">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar-sm">
+                                        {{ nombre_mostrar[0] | upper if nombre_mostrar else 'P' }}
+                                    </div>
+                                    <span class="fw-bold patient-fullname">{{ nombre_mostrar }}</span>
+                                </div>
+                            </td>
+                            <td class="td-muted">
+                                {% if p.edad is not none %}{{ p.edad }} años{% else %}--{% endif %} / {{ p.genero if p.genero else 'N/A' }}
+                            </td>
+                            <td>
+                                {% set est = p.estado | lower %}
+                                {% if 'hospital' in est %}
+                                    <span class="badge badge-hospitalizado">
+                                        <i class="fas fa-bed me-1"></i> Hospitalizado
+                                    </span>
+                                {% elif 'alta' in est %}
+                                    <span class="badge badge-alta">
+                                        <i class="fas fa-check-circle me-1"></i> Alta Médica
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-activo-gen">
+                                        <i class="fas fa-user-check me-1"></i> {{ p.estado }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="td-diagnostico">
+                                <span class="text-truncate d-inline-block diag-text" title="{{ p.diagnostico or 'Sin diagnóstico asignado' }}">
+                                    {{ p.diagnostico if p.diagnostico else 'Sin diagnóstico' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('pacientes.pacientes', id=p.id_paciente) }}" class="btn-action-icon" title="Ver Expediente Clinico">
+                                    <i class="fas fa-folder-open"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 empty-state">
+                                <i class="fas fa-user-slash fa-2x mb-3 text-muted d-block"></i>
+                                <p class="mb-0 fw-semibold">No se encontraron pacientes registrados.</p>
+                                <small class="text-muted">Intenta ajustar el filtro de búsqueda o el estado seleccionado.</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+</div>
+{% endblock %}

@@ -7,8 +7,9 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/', methods=['GET', 'POST'])
 def login():
+    # 1. Si el usuario ya tiene sesión activa, lo redirigimos directamente a pacientes
     if request.method == 'GET' and 'usuario_id' in session:
-        return redirect(url_for('pacientes.historial'))
+        return redirect(url_for('pacientes.pacientes'))
 
     if request.method == 'POST':
         correo_ingresado = (request.form.get('correo') or request.form.get('email') or '').strip()
@@ -44,13 +45,16 @@ def login():
                     registrar_auditoria(cursor, usuario['id_usuario'], 'LOGIN', 'Inicio de sesión exitoso al sistema.')
                     conn.commit()
                     cursor.close()
-                    return redirect(url_for('pacientes.historial'))
+                    # 2. Redirección al inicio de sesión exitoso corregida
+                    return redirect(url_for('pacientes.pacientes'))
             cursor.close()
         except Exception as e:
-            if conn: conn.rollback()
+            if conn: 
+                conn.rollback()
             flash(f"Error al verificar credenciales: {str(e)}", "danger")
         finally:
-            if conn: release_db_connection(conn)
+            if conn: 
+                release_db_connection(conn)
 
     return render_template('login.html')
 

@@ -1,0 +1,224 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="meds-container">
+    
+    <!-- ==========================================================================
+         VISTA 1: LISTADO PRINCIPAL Y BÚSQUEDA DE USUARIOS
+         ========================================================================== -->
+    <div id="vista_principal">
+        <div class="meds-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+            <div class="users-title-area">
+                <h2>
+                    <i class="fas fa-users-cog icon-teal"></i> Gestión de Usuarios del Sistema
+                </h2>
+                <p>Administración de personal médico, enfermería y administrativos con acceso a la plataforma S.I.G.A.P.</p>
+            </div>
+            
+            <button class="btn-meds-submit" onclick="mostrarVista('formulario')" style="padding: 10px 20px;">
+                <i class="fas fa-user-plus me-1"></i> Registrar Usuario
+            </button>
+        </div>
+
+        <!-- Barra de Búsqueda -->
+        <div class="meds-card" style="margin-bottom: 24px;">
+            <form method="GET" action="{{ url_for('usuarios.listar_usuarios') }}">
+                <div style="position: relative; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-search" style="position: absolute; left: 14px; color: var(--texto-suave);"></i>
+                    <input type="text" name="q" class="meds-input" placeholder="Buscar por nombre, cédula o correo..." value="{{ search_query if search_query else '' }}" style="padding-left: 40px; flex-grow: 1;">
+                    <button type="submit" class="btn-filter" style="padding: 10px 20px;">
+                        <i class="fas fa-filter me-1"></i> Buscar
+                    </button>
+                    {% if search_query %}
+                        <a href="{{ url_for('usuarios.listar_usuarios') }}" class="btn-reset" title="Limpiar filtro">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla de Usuarios Registrados -->
+        <div class="meds-card">
+            <h3><i class="fas fa-list icon-muted"></i> Usuarios Registrados en la Plataforma</h3>
+            <div class="meds-table-scroll">
+                <table class="meds-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre Completo</th>
+                            <th>Cédula / Identificación</th>
+                            <th>Correo Electrónico</th>
+                            <th>Rol / Cargo</th>
+                            <th>Estado</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usr in usuarios %}
+                            {% set nombre_completo = (usr.nombres ~ ' ' ~ usr.apellidos) if usr.nombres else 'Usuario' %}
+                            <tr>
+                                <td>#{{ usr.id_usuario }}</td>
+                                <td class="med-name">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div class="user-avatar-sm">
+                                            {{ nombre_completo[0] | upper }}
+                                        </div>
+                                        <strong>{{ nombre_completo }}</strong>
+                                    </div>
+                                </td>
+                                <td>{{ usr.cedula if usr.cedula else 'N/A' }}</td>
+                                <td>{{ usr.correo if usr.correo else 'N/A' }}</td>
+                                <td>
+                                    <span class="tag-category">{{ usr.rol_nombre | capitalize if usr.rol_nombre else 'Sin Rol' }}</span>
+                                </td>
+                                <td>
+                                    {% set est = (usr.estado or 'activo') | lower %}
+                                    {% if est in ['activo', 'habilitado', '1'] %}
+                                        <span class="badge-stock stock-high">Activo</span>
+                                    {% else %}
+                                        <span class="badge-stock stock-low">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <button class="btn-action-icon" title="Editar Perfil">
+                                        <i class="fas fa-user-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--texto-suave); padding: 30px;">
+                                    <i class="fas fa-info-circle fa-2x mb-2 d-block"></i>
+                                    <span>No se encontraron usuarios registrados en la base de datos.</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         VISTA 2: FORMULARIO DE REGISTRO
+         ========================================================================== -->
+    <div id="vista_formulario" style="display: none;">
+        <div class="meds-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+            <div class="users-title-area">
+                <h2>
+                    <i class="fas fa-user-plus icon-teal"></i> Registro General de Usuarios - S.I.G.A.P.
+                </h2>
+                <p>Gestión del personal clínico, administrativo y de servicios de la institución.</p>
+            </div>
+            <button class="btn-meds-submit" onclick="mostrarVista('principal')" style="background-color: var(--texto-suave); padding: 10px 20px;">
+                <i class="fas fa-arrow-left"></i> Volver al Listado
+            </button>
+        </div>
+
+        <div class="meds-card">
+            <!-- Selector de tipo de registro -->
+            <div class="form-group" style="margin-bottom: 24px; max-width: 400px;">
+                <label style="font-size: 1rem; margin-bottom: 10px; font-weight: 600;">Seleccione el tipo de registro:</label>
+                <select id="tipo_usuario" class="meds-select-filter" style="width: 100%; padding: 10px;" onchange="conmutarFormulario()">
+                    <option value="">-- Seleccione una opción --</option>
+                    <option value="empleado">Empleado / Personal Institucional</option>
+                    <option value="paciente">Paciente (Módulo Clínico)</option>
+                </select>
+            </div>
+
+            <!-- FORMULARIO DE EMPLEADO -->
+            <form id="form_empleado" method="POST" action="{{ url_for('usuarios.listar_usuarios') }}" class="meds-form" style="display: none;">
+                <h3 class="form-section-title"><i class="fas fa-id-card"></i> Información del Usuario</h3>
+                
+                <div class="form-row-grid">
+                    <div class="form-group">
+                        <label>Nombres</label>
+                        <input type="text" name="nombres" required class="meds-input" placeholder="Ej: Juan Antonio">
+                    </div>
+                    <div class="form-group">
+                        <label>Apellidos</label>
+                        <input type="text" name="apellidos" required class="meds-input" placeholder="Ej: Pérez Gómez">
+                    </div>
+                    <div class="form-group">
+                        <label>Número de Cédula</label>
+                        <input type="text" name="cedula" required class="meds-input" placeholder="Ej: 10203445">
+                    </div>
+                </div>
+
+                <div class="form-row-grid">
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" name="correo" required class="meds-input" placeholder="correo@sigap.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña de Acceso</label>
+                        <input type="password" name="password" required class="meds-input" placeholder="********">
+                    </div>
+                    <div class="form-group">
+                        <label>Rol asignado</label>
+                        <select name="id_rol" required class="meds-input select-custom">
+                            <option value="1">Administrador</option>
+                            <option value="2">Médico Psiquiatra</option>
+                            <option value="3">Psicólogo</option>
+                            <option value="4">Enfermero/a</option>
+                            <option value="5">Administrativo</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-meds-submit" style="margin-top: 24px; font-size: 1rem; padding: 14px; width: 100%;">
+                    <i class="fas fa-save me-1"></i> Guardar Usuario en S.I.G.A.P.
+                </button>
+            </form>
+
+            <!-- REDIRECCIÓN PACIENTE -->
+            <div id="form_paciente" class="meds-form text-center py-4" style="display: none;">
+                <i class="fas fa-procedures fa-3x text-primary mb-3"></i>
+                <h4>Redirigiendo al Módulo de Registro de Pacientes...</h4>
+                <p class="text-muted">Los expedientes clínicos de pacientes se gestionan en su módulo especializado.</p>
+                <a href="/pacientes" class="btn btn-primary mt-2">
+                    Ir al Formulario de Paciente
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Scripts interactivos de la vista -->
+<script>
+function mostrarVista(vista) {
+    const vistaPrincipal = document.getElementById('vista_principal');
+    const vistaFormulario = document.getElementById('vista_formulario');
+
+    if (vista === 'formulario') {
+        vistaPrincipal.style.display = 'none';
+        vistaFormulario.style.display = 'block';
+    } else {
+        vistaPrincipal.style.display = 'block';
+        vistaFormulario.style.display = 'none';
+    }
+}
+
+function conmutarFormulario() {
+    const selector = document.getElementById('tipo_usuario').value;
+    const formEmpleado = document.getElementById('form_empleado');
+    const formPaciente = document.getElementById('form_paciente');
+
+    if (selector === 'empleado') {
+        formEmpleado.style.display = 'block';
+        formPaciente.style.display = 'none';
+    } else if (selector === 'paciente') {
+        formEmpleado.style.display = 'none';
+        formPaciente.style.display = 'block';
+        setTimeout(() => {
+            window.location.href = "/pacientes";
+        }, 800);
+    } else {
+        formEmpleado.style.display = 'none';
+        formPaciente.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
