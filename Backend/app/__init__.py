@@ -10,14 +10,37 @@ db_pool = None
 def create_app():
     global db_pool
     
-    # Obtener la ruta raíz del proyecto (subiendo dos niveles desde Backend/app)
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    # 1. Determinar el directorio base del proyecto
+    # __file__ está dentro de: .../sigap_frontend/Backend/app/__init__.py
+    app_dir = os.path.dirname(os.path.abspath(__file__))               # Backend/app
+    backend_dir = os.path.abspath(os.path.join(app_dir, '..'))          # Backend
+    project_root = os.path.abspath(os.path.join(backend_dir, '..'))     # sigap_frontend
+
+    # Definir rutas posibles para las plantillas (Frontend/templates o Backend/templates)
+    frontend_templates = os.path.join(project_root, 'Frontend', 'templates')
+    backend_templates = os.path.join(backend_dir, 'templates')
     
-    # Configurar Flask apuntando a las carpetas 'templates' y 'static' en Frontend
+    # Seleccionar la carpeta de plantillas que realmente exista en el sistema
+    if os.path.exists(frontend_templates):
+        template_dir = frontend_templates
+    elif os.path.exists(backend_templates):
+        template_dir = backend_templates
+    else:
+        template_dir = frontend_templates
+
+    # Definir carpeta de archivos estáticos (Frontend/static o Backend/static)
+    frontend_static = os.path.join(project_root, 'Frontend', 'static')
+    backend_static = os.path.join(backend_dir, 'static')
+    static_dir = frontend_static if os.path.exists(frontend_static) else backend_static
+
+    print(f"-> Cargando plantillas desde: {template_dir}")
+    print(f"-> Cargando estáticos desde:   {static_dir}")
+
+    # Configurar Flask con las rutas validadas
     app = Flask(
         __name__, 
-        template_folder=os.path.join(root_dir, 'Frontend', 'templates'),
-        static_folder=os.path.join(root_dir, 'Frontend', 'static')
+        template_folder=template_dir,
+        static_folder=static_dir
     )
                 
     # Clave secreta para manejo de sesiones y alertas flash

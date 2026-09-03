@@ -9,7 +9,7 @@ usuarios_bp = Blueprint('usuarios', __name__)
 # =========================================================================
 @usuarios_bp.route('/usuarios', methods=['GET'])
 @login_required
-@role_required(['Administrador'])
+@role_required(['Administración'])  # <-- Corregido para permitir el acceso al rol de la BD
 def listar_usuarios():
     conn = None
     usuarios = []
@@ -81,7 +81,7 @@ def listar_usuarios():
 # =========================================================================
 @usuarios_bp.route('/usuarios/crear', methods=['POST'])
 @login_required
-@role_required(['Administrador'])
+@role_required(['Administración'])  # <-- Corregido para mantener coherencia de permisos
 def crear_usuario():
     conn = None
     try:
@@ -90,7 +90,7 @@ def crear_usuario():
         documento = request.form.get('cedula')
         tipo_documento = request.form.get('tipo_documento', 'CC')
         correo = request.form.get('correo')
-        password = request.form.get('password') # Se recomienda aplicar hash antes de guardar
+        password = request.form.get('password') 
         id_rol = request.form.get('id_rol', 1)
 
         conn = get_db_connection()

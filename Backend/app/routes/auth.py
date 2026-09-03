@@ -7,7 +7,6 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/', methods=['GET', 'POST'])
 def login():
-    # 1. Si el usuario ya tiene sesión activa, lo redirigimos directamente a pacientes
     if request.method == 'GET' and 'usuario_id' in session:
         return redirect(url_for('pacientes.pacientes'))
 
@@ -26,32 +25,54 @@ def login():
                 JOIN roles r ON u.id_rol = r.id_rol
                 WHERE LOWER(u.correo) = LOWER(%s)
             ''', (correo_ingresado,))
-            usuario = cursor.fetchone()
-
-            if usuario is None:
+            
+            row = cursor.fetchone()
+            
+            if row is None:
                 flash("El correo institucional no se encuentra registrado.", "danger")
+                cursor.close()
             else:
-                clave_bd = (usuario.get('password_hash') or '').strip()
-                es_valida = (clave_bd == password_ingresada) or check_password_hash(clave_bd, password_ingresada)
+                # Mapeo seguro de la fila de PostgreSQL a diccionario para evitar errores de tipo
+                col_names = [desc[0] for desc in cursor.description]
+                usuario = dict(zip(col_names, row))
+                cursor.close()
+
+                clave_bd = str(usuario.get('password_hash') or '').strip()
                 
+                # Validación de contraseña (texto plano o hash seguro)
+                es_valida = (clave_bd == password_ingresada)
+                if not es_valida:
+                    try:
+                        es_valida = check_password_hash(clave_bd, password_ingresada)
+                    except Exception:
+                        pass
+
                 if not es_valida:
                     flash("La contraseña ingresada es incorrecta.", "danger")
                 else:
+                    # Guardar variables de sesión unificadas para el layout y los decoradores
                     session['usuario_id'] = usuario['id_usuario']
-                    session['nombre'] = f"{usuario['nombres']} {usuario['apellidos']}"
+                    session['usuario'] = f"{usuario.get('nombres', '')} {usuario.get('apellidos', '')}".strip()
+                    session['rol'] = usuario['rol_nombre']
                     session['rol_id'] = usuario['id_rol']
                     session['rol_nombre'] = usuario['rol_nombre']
                     
-                    registrar_auditoria(cursor, usuario['id_usuario'], 'LOGIN', 'Inicio de sesión exitoso al sistema.')
-                    conn.commit()
-                    cursor.close()
-                    # 2. Redirección al inicio de sesión exitoso corregida
+                    # Registrar auditoría de forma segura
+                    try:
+                        cur_aud = conn.cursor()
+                        registrar_auditoria(cur_aud, usuario['id_usuario'], 'LOGIN', 'Inicio de sesión exitoso al sistema.')
+                        conn.commit()
+                        cur_aud.close()
+                    except Exception as aud_err:
+                        print(f"--> [Aviso Auditoría]: {aud_err}")
+
                     return redirect(url_for('pacientes.pacientes'))
-            cursor.close()
+                
         except Exception as e:
             if conn: 
                 conn.rollback()
-            flash(f"Error al verificar credenciales: {str(e)}", "danger")
+            print(f"--> [ERROR CRÍTICO LOGIN]: {str(e)}")
+            flash(f"Error interno al procesar el inicio de sesión: {str(e)}", "danger")
         finally:
             if conn: 
                 release_db_connection(conn)

@@ -13,6 +13,41 @@
     <!-- CSS Global -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     
+    <!-- Variables Dinámicas para MODO CLARO / OSCURO -->
+    <style>
+        :root {
+            --topbar-btn-bg: rgba(0, 0, 0, 0.06);
+            --topbar-btn-border: rgba(0, 0, 0, 0.12);
+            --topbar-btn-text: #0f172a;
+            --user-name-color: #0f172a;
+            --user-role-color: #475569;
+        }
+
+        body.dark-mode {
+            --topbar-btn-bg: rgba(255, 255, 255, 0.1);
+            --topbar-btn-border: rgba(255, 255, 255, 0.2);
+            --topbar-btn-text: #ffffff;
+            --user-name-color: #ffffff;
+            --user-role-color: #cbd5e1;
+        }
+
+        .btn-topbar-dinamico {
+            background-color: var(--topbar-btn-bg) !important;
+            border: 1px solid var(--topbar-btn-border) !important;
+            color: var(--topbar-btn-text) !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-topbar-dinamico i, 
+        .btn-topbar-dinamico span {
+            color: var(--topbar-btn-text) !important;
+        }
+
+        .btn-topbar-dinamico:hover {
+            opacity: 0.85;
+        }
+    </style>
+    
     <!-- Bloque para CSS exclusivo de páginas específicas -->
     {% block extra_css %}{% endblock %}
 
@@ -31,11 +66,11 @@
         </div>
 
         <nav class="sidebar-nav">
-            <a href="/pacientes" class="nav-item {% if request.path.startswith('/pacientes') %}active{% endif %}">
+            <a href="{{ url_for('pacientes.pacientes') }}" class="nav-item {% if request.path.startswith('/pacientes') %}active{% endif %}">
                 <i class="fas fa-user-injured"></i>
                 <span>Pacientes</span>
             </a>
-            <a href="/historial" class="nav-item {% if request.path.startswith('/historial') %}active{% endif %}">
+            <a href="{{ url_for('pacientes.historial_clinico') }}" class="nav-item {% if request.path.startswith('/historial') %}active{% endif %}">
                 <i class="fas fa-notes-medical"></i>
                 <span>Historial Clínico</span>
             </a>
@@ -77,8 +112,9 @@
     <div class="main-content">
 
         <!-- BARRA SUPERIOR (TOPBAR) -->
-        <div class="topbar">
+        <div class="topbar" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 20px;">
             
+            <!-- BOTÓN CAMBIAR TEMA -->
             <button id="btn-theme" class="topbar-btn icon-only" title="Cambiar Tema">
                 <i class="fas fa-moon"></i>
             </button>
@@ -87,38 +123,44 @@
 
             <div class="topbar-actions" style="display: flex; align-items: center; gap: 16px;">
                 
-                <button class="topbar-btn-util">
-                    <i class="fas fa-bell"></i> Alertas
+                <!-- BOTÓN ALERTAS -->
+                <button type="button" class="btn-topbar-dinamico" style="padding: 6px 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 6px; font-size: 0.9rem; font-weight: 600;">
+                    <i class="fas fa-bell"></i>
+                    <span>Alertas</span>
                 </button>
                 
-                <button class="topbar-btn-envelope">
+                <!-- BOTÓN MENSAJES -->
+                <button type="button" class="btn-topbar-dinamico" style="padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 6px; font-size: 0.9rem;">
                     <i class="fas fa-envelope"></i>
                 </button>
 
                 {% set nombre_usr = usuario_nombre or session.get('usuario') or 'Usuario' %}
                 {% set rol_usr = usuario_rol or session.get('rol') or 'Personal' %}
                 
+                <!-- PERFIL DE USUARIO -->
                 <div class="user-profile-widget" style="display: flex; align-items: center; gap: 12px; margin-left: 8px;">
                     <div class="user-profile-info" style="display: flex; flex-direction: column; line-height: 1.2; text-align: right;">
-                        <span class="user-name-text" style="font-weight: 700;">
+                        <span class="user-name-text" style="font-weight: 700; color: var(--user-name-color) !important;">
                             {{ nombre_usr }}
                         </span>
-                        <span class="user-role-text" style="font-size: 0.8rem; opacity: 0.8;">
+                        <span class="user-role-text" style="font-size: 0.8rem; color: var(--user-role-color) !important;">
                             {{ rol_usr }}
                         </span>
                     </div>
 
-                    <div class="user-avatar-circle" style="width: 40px; height: 40px; background-color: var(--azul-oscuro, #1e293b); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;">
+                    <div class="user-avatar-circle" style="width: 40px; height: 40px; background-color: #2563eb; color: #ffffff !important; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;">
                         {{ nombre_usr[0] | upper }}
                     </div>
                 </div>
 
-                <a href="/logout" title="Cerrar Sesión" style="width: 38px; height: 38px; background-color: #fee2e2; color: #dc2626; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; margin-left: 4px;">
+                <!-- BOTÓN SALIR (CORREGIDO A auth.logout) -->
+                <a href="{{ url_for('auth.logout') }}" title="Cerrar Sesión" style="width: 38px; height: 38px; background-color: #fee2e2; color: #dc2626; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; margin-left: 4px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </div>
 
+        <!-- CUERPO DE LAS PÁGINAS -->
         <div class="page-body">
             {% block contenido %}
             {% endblock %}

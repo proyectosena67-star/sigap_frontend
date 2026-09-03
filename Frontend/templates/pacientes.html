@@ -3,7 +3,7 @@
 {% block contenido %}
 <div class="historial-layout">
 
-    <!-- PANEL IZQUIERDO: Resumen y métricas -->
+    <!-- PANEL IZQUIERDO: Resumen y métricas de Pacientes -->
     <aside class="patient-panel">
         <div class="patient-avatar-wrap">
             <div class="patient-avatar">
@@ -37,7 +37,7 @@
         </div>
     </aside>
 
-    <!-- PANEL DERECHO: Tabla de pacientes y búsquedas -->
+    <!-- PANEL DERECHO: Tabla general de pacientes y búsquedas -->
     <main class="historial-panel">
 
         <!-- Header con Pestañas y Acción Principal -->
@@ -72,7 +72,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <div class="topbar-search search-input-container flex-grow-1">
                         <i class="fas fa-search search-icon"></i>
-                        <input type="text" name="q" class="form-control-custom" placeholder="Buscar por nombre o documento..." value="{{ search_query }}">
+                        <input type="text" name="q" class="form-control-custom" placeholder="Buscar por nombre o documento..." value="{{ search_query or '' }}">
                     </div>
                     <button type="submit" class="btn btn-filter">
                         <i class="fas fa-filter me-1"></i> Filtrar
@@ -136,7 +136,10 @@
                                 </span>
                             </td>
                             <td class="text-end">
-                                <a href="{{ url_for('pacientes.pacientes', id=p.id_paciente) }}" class="btn-action-icon" title="Ver Expediente Clinico">
+                                <!-- REDIRECCIÓN AL CLIC EN LA CARPETA AL HISTORIAL CLÍNICO DEL PACIENTE -->
+                                <a href="{{ url_for('pacientes.historial_clinico', id_paciente=p.id_paciente) }}" 
+                                   class="btn-action-icon" 
+                                   title="Ver Historial Clínico">
                                     <i class="fas fa-folder-open"></i>
                                 </a>
                             </td>

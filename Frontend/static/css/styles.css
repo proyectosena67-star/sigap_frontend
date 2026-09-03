@@ -1051,3 +1051,164 @@ body.dark-mode .badge-activo-gen {
     background-color: var(--azul-claro);
     color: #ffffff !important;
 }
+
+/* ==========================================
+   ESTILOS GENERALES Y MODO OSCURO (HISTORIAL Y TOPBAR)
+   ========================================== */
+
+/* Botones Útiles de la Topbar */
+.topbar-btn-util,
+.topbar-btn-envelope {
+    background: transparent;
+    border: none;
+    color: var(--text-color, #1e293b);
+    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.topbar-btn-util:hover,
+.topbar-btn-envelope:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* --- REGLAS CUANDO SE ACTIVA EL MODO OSCURO (.dark-mode) --- */
+
+body.dark-mode {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+/* Ajustes Topbar en Modo Oscuro */
+body.dark-mode .topbar-btn-util,
+body.dark-mode .topbar-btn-envelope {
+    color: #ffffff;
+}
+
+body.dark-mode .topbar-btn-util:hover,
+body.dark-mode .topbar-btn-envelope:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Ajustes de Tarjetas y Módulos en Modo Oscuro */
+body.dark-mode .card {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark-mode .card-header {
+    background-color: #0f172a !important;
+    border-bottom: 1px solid #334155 !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .list-group-item {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode .list-group-item-action:hover {
+    background-color: #334155 !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .list-group-item.active {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* Formularios en Modo Oscuro */
+body.dark-mode input.form-control,
+body.dark-mode textarea.form-control {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+}
+
+body.dark-mode input.form-control::placeholder,
+body.dark-mode textarea.form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* ==========================================
+   TOPBAR Y BOTONES (MODO CLARO Y OSCURO)
+   ========================================== */
+
+/* 1. Fondo de la topbar en modo claro */
+.topbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+/* 2. Botones e iconos en Modo Claro (Visibles) */
+.topbar-btn-util,
+.topbar-btn-envelope {
+    background: transparent;
+    border: none;
+    color: #1e293b !important; /* Texto oscuro visible */
+    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.topbar-btn-util i,
+.topbar-btn-envelope i,
+.topbar-btn-util span {
+    color: #1e293b !important; /* Iconos y texto oscuros */
+}
+
+.topbar-btn-util:hover,
+.topbar-btn-envelope:hover {
+    background-color: #f1f5f9;
+}
+
+/* 3. Información del usuario en Modo Claro */
+.user-name-text {
+    color: #0f172a !important;
+}
+.user-role-text {
+    color: #64748b !important;
+}
+
+
+/* --- MODO OSCURO (ACTIVADO CON .dark-mode) --- */
+
+body.dark-mode .topbar {
+    background-color: #1e293b;
+    border-bottom: 1px solid #334155;
+    color: #ffffff;
+}
+
+body.dark-mode .topbar-btn-util,
+body.dark-mode .topbar-btn-envelope,
+body.dark-mode .topbar-btn-util i,
+body.dark-mode .topbar-btn-envelope i,
+body.dark-mode .topbar-btn-util span {
+    color: #ffffff !important; /* Pasa a blanco en modo oscuro */
+}
+
+body.dark-mode .topbar-btn-util:hover,
+body.dark-mode .topbar-btn-envelope:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .user-name-text {
+    color: #ffffff !important;
+}
+body.dark-mode .user-role-text {
+    color: #cbd5e1 !important;
+}

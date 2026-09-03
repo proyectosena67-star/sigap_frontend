@@ -17,9 +17,11 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="flash-alert-{{ category if category != 'error' else 'danger' }}">
-              <i class="fas fa-check-circle"></i> {{ message }}
-          </div>
+          {% if "inicia sesión" not in message %}
+            <div class="flash-alert-{{ category if category != 'error' else 'danger' }}">
+                <i class="fas fa-check-circle"></i> {{ message }}
+            </div>
+          {% endif %}
         {% endfor %}
       {% endif %}
     {% endwith %}
