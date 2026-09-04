@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S.I.G.A.P.</title>
+    <title>S.I.G.A.P. - Sistema de Gestión Hospitalaria</title>
     
     <!-- CSS Externos -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -74,7 +74,7 @@
                 <i class="fas fa-notes-medical"></i>
                 <span>Historial Clínico</span>
             </a>
-            <a href="/evaluaciones" class="nav-item {% if request.path.startswith('/evaluaciones') %}active{% endif %}">
+            <a href="{{ url_for('evaluaciones.evaluaciones') if 'evaluaciones.evaluaciones' in url_for.__globals__['current_app'].view_functions else '/evaluaciones' }}" class="nav-item {% if request.path.startswith('/evaluaciones') %}active{% endif %}">
                 <i class="fas fa-clipboard-check"></i>
                 <span>Evaluaciones</span>
             </a>
@@ -82,27 +82,28 @@
                 <i class="fas fa-hospital"></i>
                 <span>Internamientos</span>
             </a>
-            <a href="/medicamentos" class="nav-item {% if request.path.startswith('/medicamentos') %}active{% endif %}">
+            <a href="{{ url_for('medicamentos.medicamentos') if 'medicamentos.medicamentos' in url_for.__globals__['current_app'].view_functions else '/medicamentos' }}" class="nav-item {% if request.path.startswith('/medicamentos') %}active{% endif %}">
                 <i class="fas fa-pills"></i>
                 <span>Medicamentos</span>
             </a>
-            
-            <!-- OPCIÓN KARDEX AGREGADA -->
             <a href="{{ url_for('kardex.kardex') if 'kardex.kardex' in url_for.__globals__['current_app'].view_functions else '/kardex' }}" class="nav-item {% if request.path.startswith('/kardex') %}active{% endif %}">
                 <i class="fas fa-notes-medical"></i>
                 <span>Kardex</span>
             </a>
-
-            <a href="/visitas" class="nav-item {% if request.path.startswith('/visitas') %}active{% endif %}">
+            <a href="{{ url_for('citas.citas') if 'citas.citas' in url_for.__globals__['current_app'].view_functions else '/citas' }}" class="nav-item {% if request.path.startswith('/citas') or request.path.startswith('/visitas') %}active{% endif %}">
                 <i class="fas fa-calendar-alt"></i>
-                <span>Visitas</span>
+                <span>Citas / Visitas</span>
             </a>
-            <a href="/usuarios" class="nav-item {% if request.path.startswith('/usuarios') %}active{% endif %}">
+            <a href="{{ url_for('facturacion.facturacion') if 'facturacion.facturacion' in url_for.__globals__['current_app'].view_functions else '/facturacion' }}" class="nav-item {% if request.path.startswith('/facturacion') %}active{% endif %}">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Facturación</span>
+            </a>
+            <a href="{{ url_for('usuarios.listar_usuarios') if 'usuarios.listar_usuarios' in url_for.__globals__['current_app'].view_functions else '/usuarios' }}" class="nav-item {% if request.path.startswith('/usuarios') %}active{% endif %}">
                 <i class="fas fa-users"></i>
                 <span>Usuarios</span>
             </a>
-            <a href="/auditoria" class="nav-item {% if request.path.startswith('/auditoria') %}active{% endif %}">
-                <i class="fas fa-file-alt"></i>
+            <a href="{{ url_for('auditoria.auditoria') if 'auditoria.auditoria' in url_for.__globals__['current_app'].view_functions else '/auditoria' }}" class="nav-item {% if request.path.startswith('/auditoria') %}active{% endif %}">
+                <i class="fas fa-shield-alt"></i>
                 <span>Auditoría</span>
             </a>
         </nav>
@@ -132,7 +133,7 @@
                 
                 <!-- BOTÓN ALERTAS -->
                 <button type="button" class="btn-topbar-dinamico" style="padding: 6px 14px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 6px; font-size: 0.9rem; font-weight: 600;">
-                    <i class="fas fa-bell"></i>
+                    <i class="fas fa-bell text-warning"></i>
                     <span>Alertas</span>
                 </button>
                 
@@ -141,8 +142,8 @@
                     <i class="fas fa-envelope"></i>
                 </button>
 
-                {% set nombre_usr = usuario_nombre or session.get('usuario') or 'Laura' %}
-                {% set rol_usr = usuario_rol or session.get('rol') or 'administrador' %}
+                {% set nombre_usr = usuario_nombre or session.get('nombres') or session.get('usuario') or 'Usuario' %}
+                {% set rol_usr = usuario_rol or session.get('rol_nombre') or session.get('rol') or 'Personal' %}
                 
                 <!-- PERFIL DE USUARIO -->
                 <div class="user-profile-widget" style="display: flex; align-items: center; gap: 12px; margin-left: 8px;">
@@ -161,21 +162,21 @@
                 </div>
 
                 <!-- BOTÓN SALIR -->
-                <a href="{{ url_for('auth.logout') }}" title="Cerrar Sesión" style="width: 38px; height: 38px; background-color: #fee2e2; color: #dc2626; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; margin-left: 4px;">
+                <a href="{{ url_for('auth.logout') if 'auth.logout' in url_for.__globals__['current_app'].view_functions else '/logout' }}" title="Cerrar Sesión" style="width: 38px; height: 38px; background-color: #fee2e2; color: #dc2626; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; margin-left: 4px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
             </div>
         </div>
 
         <!-- CUERPO DE LAS PÁGINAS -->
-        <div class="page-body">
+        <div class="page-body" style="padding: 20px;">
             
-            <!-- ALERTAS FLASH DE FLASK -->
+            <!-- ALERTAS Y MENSAJES FLASH DE FLASK -->
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 {% for category, message in messages %}
-                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show m-3" role="alert">
-                    {{ message }}
+                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-info-circle me-2"></i> {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                   </div>
                 {% endfor %}
@@ -189,6 +190,7 @@
     </div>
 </div>
 
+<!-- Scripts Bootstrap y Modo Oscuro/Claro -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const btnTheme = document.getElementById('btn-theme');
