@@ -1,0 +1,163 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+<div class="container-fluid py-4">
+    
+    <!-- Encabezado de la Sección -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 font-weight-bold text-dark mb-1">Gestión de Citas Médicas</h2>
+            <p class="text-muted mb-0">Administración, programación y seguimiento de citas para los pacientes del sistema S.I.G.A.P.</p>
+        </div>
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaCita">
+            <i class="fas fa-plus-circle me-2"></i> Nueva Cita
+        </button>
+    </div>
+
+    <!-- Mensajes Flash de Alerta -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Tarjeta Principal con Tabla de Citas -->
+    <div class="card border-0 shadow-sm rounded-lg mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase fs-7 text-secondary">
+                        <tr>
+                            <th class="py-3 px-4"># ID</th>
+                            <th class="py-3">Paciente</th>
+                            <th class="py-3">Médico Asignado</th>
+                            <th class="py-3">Fecha y Hora</th>
+                            <th class="py-3">Motivo</th>
+                            <th class="py-3">Estado</th>
+                            <th class="py-3 text-end px-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if citas %}
+                            {% for cita in citas %}
+                            <tr>
+                                <td class="px-4 fw-bold text-secondary">{{ cita.id_cita }}</td>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ cita.primer_nombre }} {{ cita.primer_apellido }}</div>
+                                    <small class="text-muted">ID Paciente: {{ cita.id_paciente }}</small>
+                                </td>
+                                <td>
+                                    <div class="text-dark">{{ cita.nombre_medico or 'No asignado' }}</div>
+                                </td>
+                                <td>
+                                    <div class="text-dark font-monospace">{{ cita.fecha_hora }}</div>
+                                </td>
+                                <td>
+                                    <span class="text-secondary">{{ cita.motivo_consulta }}</span>
+                                </td>
+                                <td>
+                                    {% if cita.estado == 'PROGRAMADA' %}
+                                        <span class="badge bg-info text-dark px-2 py-1">PROGRAMADA</span>
+                                    {% elif cita.estado == 'ATENDIDA' %}
+                                        <span class="badge bg-success px-2 py-1">ATENDIDA</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary px-2 py-1">{{ cita.estado }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end px-4">
+                                    <button class="btn btn-sm btn-outline-primary" title="Editar Cita">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="fas fa-calendar-times fa-2x mb-3 text-secondary"></i>
+                                    <p class="mb-0">No se encuentran citas médicas registradas en el sistema.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal para Registrar Nueva Cita -->
+<div class="modal fade" id="modalNuevaCita" tabindex="-1" aria-labelledby="modalNuevaCitaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('citas.guardar_cita') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNuevaCitaLabel">
+                        <i class="fas fa-calendar-plus me-2"></i> Agendar Nueva Cita
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    
+                    <!-- Selección de Paciente -->
+                    <div class="mb-3">
+                        <label for="id_paciente" class="form-label fw-bold text-secondary">Paciente</label>
+                        <select class="form-select" id="id_paciente" name="id_paciente" required>
+                            <option value="" selected disabled>Seleccione un paciente...</option>
+                            {% for pac in pacientes %}
+                                <option value="{{ pac.id_paciente }}">{{ pac.primer_nombre }} {{ pac.primer_apellido }} (ID: {{ pac.id_paciente }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Selección de Médico -->
+                    <div class="mb-3">
+                        <label for="id_medico" class="form-label fw-bold text-secondary">Médico Asignado</label>
+                        <select class="form-select" id="id_medico" name="id_medico" required>
+                            <option value="" selected disabled>Seleccione un médico...</option>
+                            {% for med in medicos %}
+                                <option value="{{ med.id_usuario }}">{{ med.nombres }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Fecha y Hora de la Cita -->
+                    <div class="mb-3">
+                        <label for="fecha_cita" class="form-label fw-bold text-secondary">Fecha y Hora</label>
+                        <input type="datetime-local" class="form-control" id="fecha_cita" name="fecha_cita" required>
+                    </div>
+
+                    <!-- Tipo de Consulta -->
+                    <div class="mb-3">
+                        <label for="tipo_consulta" class="form-label fw-bold text-secondary">Tipo de Consulta</label>
+                        <select class="form-select" id="tipo_consulta" name="tipo_consulta" required>
+                            <option value="" selected disabled>Seleccione el tipo...</option>
+                            <option value="PRIMERA VEZ">Primera Vez</option>
+                            <option value="CONTROL">Control</option>
+                            <option value="URGENCIA">Urgencia</option>
+                        </select>
+                    </div>
+
+                    <!-- Motivo de la Consulta -->
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label fw-bold text-secondary">Motivo de Consulta</label>
+                        <textarea class="form-control" id="motivo" name="motivo" rows="3" placeholder="Describa brevemente el motivo..."></textarea>
+                    </div>
+
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

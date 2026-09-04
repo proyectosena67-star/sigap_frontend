@@ -3,21 +3,16 @@
 {% block contenido %}
 <div class="container-fluid p-4">
 
-    <!-- ==========================================================================
-         VISTA 1: MENÚ PRINCIPAL, BÚSQUEDA Y TABLA DE USUARIOS (Por defecto visible)
-         ========================================================================== -->
+    <!-- VISTA 1: MENÚ PRINCIPAL Y TABLA DE USUARIOS -->
     <div id="vista_principal">
-
-        <!-- Encabezado del Módulo y Botón de Acción -->
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
             <div>
                 <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
                     <i class="fas fa-users-cog text-primary"></i> Gestión de Usuarios del Sistema
                 </h3>
-                <p class="text-muted mb-0">Administración de personal médico, enfermería y administrativos registrados en S.I.G.A.P.</p>
+                <p class="text-muted mb-0">Administración de personal médico, enfermería y pacientes registrados en S.I.G.A.P.</p>
             </div>
             <div>
-                <!-- Cambia a la vista del formulario -->
                 <button type="button" class="btn btn-primary fw-bold px-3 py-2 d-inline-flex align-items-center gap-2" onclick="mostrarVista('formulario')">
                     <i class="fas fa-user-plus"></i> Registrar Usuario
                 </button>
@@ -27,11 +22,11 @@
         <!-- Campo de Búsqueda -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-3">
-                <form method="GET" action="{{ url_for('usuarios.listar_usuarios') if 'usuarios.listar_usuarios' in url_for.__globals__ else '#' }}" class="input-group">
+                <form method="GET" action="{{ url_for('usuarios.listar_usuarios') }}" class="input-group">
                     <span class="input-group-text bg-transparent border-0 pe-0 text-muted">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" name="busqueda" class="form-control border-0 shadow-none ps-3" placeholder="Buscar por nombre, documento o correo electrónico..." value="{{ request.args.get('busqueda', '') }}">
+                    <input type="text" name="q" class="form-control border-0 shadow-none ps-3" placeholder="Buscar por nombre, apellidos, correo o documento..." value="{{ search_query }}">
                 </form>
             </div>
         </div>
@@ -60,60 +55,23 @@
                             {% if usuarios %}
                                 {% for u in usuarios %}
                                     <tr>
-                                        <!-- Nombre Completo -->
                                         <td class="ps-4 fw-bold text-dark">
-                                            {% if u.nombres and u.apellidos %}
-                                                {{ u.nombres }} {{ u.apellidos }}
-                                            {% elif u.nombre_completo %}
-                                                {{ u.nombre_completo }}
-                                            {% elif u.nombres %}
-                                                {{ u.nombres }}
-                                            {% else %}
-                                                Usuario #{{ u.id_usuario or loop.index }}
-                                            {% endif %}
+                                            {{ u.nombres }} {{ u.apellidos }}
                                         </td>
-
-                                        <!-- Identificación -->
                                         <td>
-                                            {% set doc = u.documento or u.numero_documento or u.identificacion or u.num_doc or u.cedula %}
-                                            {% if u.tipo_documento and doc %}
-                                                <span class="badge bg-light text-dark border me-1">{{ u.tipo_documento }}</span>{{ doc }}
-                                            {% elif doc %}
-                                                {{ doc }}
-                                            {% else %}
-                                                <span class="text-muted">N/A</span>
-                                            {% endif %}
+                                            <span class="badge bg-light text-dark border me-1">{{ u.tipo_documento }}</span>{{ u.cedula }}
                                         </td>
-
-                                        <!-- Correo Electrónico -->
                                         <td>
-                                            {{ u.correo or u.email or u.correo_institucional or 'Sin correo' }}
+                                            {{ u.correo }}
                                         </td>
-
-                                        <!-- Rol / Cargo -->
                                         <td>
-                                            {% set rol_cargo = u.nombre_rol or u.rol_nombre or u.rol or u.nombre or u.cargo or u.especialidad %}
-                                            {% if rol_cargo %}
-                                                <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1 fs-6">
-                                                    {{ rol_cargo | capitalize }}
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-light text-secondary border px-2 py-1 fs-6">
-                                                    Sin Rol
-                                                </span>
-                                            {% endif %}
+                                            <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1 fs-6">
+                                                {{ u.rol_nombre | capitalize }}
+                                            </span>
                                         </td>
-
-                                        <!-- Estado -->
                                         <td>
-                                            {% if u.estado == 'Activo' or u.estado is not defined or not u.estado %}
-                                                <span class="badge bg-success px-2 py-1">Activo</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary px-2 py-1">{{ u.estado }}</span>
-                                            {% endif %}
+                                            <span class="badge bg-success px-2 py-1">{{ u.estado | capitalize }}</span>
                                         </td>
-
-                                        <!-- Botones de Acción -->
                                         <td class="text-end pe-4">
                                             <button class="btn btn-sm btn-outline-primary me-1" title="Editar">
                                                 <i class="fas fa-edit"></i>
@@ -137,15 +95,10 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-
-    <!-- ==========================================================================
-         VISTA 2: FORMULARIO DE REGISTRO INTEGRADO (Oculto por defecto)
-         ========================================================================== -->
+    <!-- VISTA 2: SECCIÓN DE FORMULARIOS DE REGISTRO -->
     <div id="vista_formulario" style="display: none;">
-        
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
             <div>
                 <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
@@ -153,325 +106,132 @@
                 </h3>
                 <p class="text-muted mb-0">Centro Psiquiátrico: Gestión integrada de personal clínico, administrativo y pacientes.</p>
             </div>
-            <!-- Botón para regresar al listado -->
             <button type="button" class="btn btn-secondary fw-bold px-3 py-2 d-inline-flex align-items-center gap-2" onclick="mostrarVista('principal')">
                 <i class="fas fa-arrow-left"></i> Volver al Listado
             </button>
         </div>
 
         <div class="card shadow-sm border-0 p-4">
-            <!-- Selector inicial de tipo de registro -->
+            <!-- Selector para conmutar dinámicamente entre Empleado y Paciente -->
             <div class="mb-4" style="max-width: 400px;">
                 <label class="form-label fw-bold">Seleccione el tipo de usuario a registrar:</label>
-                <select id="tipo_usuario" name="tipo_usuario" class="form-select" onchange="conmutarFormulario()">
+                <select id="tipo_usuario" class="form-select" onchange="conmutarFormulario()">
                     <option value="">-- Seleccione una opción --</option>
-                    <option value="paciente">Paciente</option>
                     <option value="empleado">Empleado / Profesional</option>
+                    <option value="paciente">Paciente</option>
                 </select>
             </div>
 
             <!-- FORMULARIO DE EMPLEADO -->
-            <form id="form_empleado" method="POST" action="{{ url_for('usuarios.crear_usuario') }}" enctype="multipart/form-data" style="display: none;">
-                <input type="hidden" name="categoria_registro" value="empleado">
-
-                <!-- BLOQUE 1: DATOS PERSONALES -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-id-card"></i> 1. Información Personal General</h4>
+            <form id="form_empleado" method="POST" action="{{ url_for('usuarios.crear_usuario') }}" style="display: none;">
+                <input type="hidden" name="id_rol" value="2">
+                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-id-card"></i> Información del Empleado</h4>
                 <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Fecha de Registro</label>
-                        <input type="date" name="fecha_registro" required class="form-control">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" name="nombres" required class="form-control">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Nombres Completos</label>
-                        <input type="text" name="nombres" placeholder="Nombres" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Apellidos Completos</label>
-                        <input type="text" name="apellidos" placeholder="Apellidos" required class="form-control">
+                    <div class="col-md-6">
+                        <label class="form-label">Apellidos</label>
+                        <input type="text" name="apellidos" required class="form-control">
                     </div>
                 </div>
 
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Tipo de Documento</label>
-                        <select name="tipo_documento" required class="form-select">
-                            <option value="C.C.">C.C. (Cédula de Ciudadanía)</option>
-                            <option value="C.E.">C.E. (Cédula de Extranjería)</option>
-                            <option value="P.T.T.">P.T.T. (Permiso Temporal de Permanencia)</option>
+                        <select name="tipo_documento" class="form-select">
+                            <option value="CC">Cédula de Ciudadanía (CC)</option>
+                            <option value="CE">Cédula de Extranjería (CE)</option>
+                            <option value="PPT">PPT</option>
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Número de Documento</label>
-                        <input type="text" name="numero_documento" placeholder="Ej: 10203445" required class="form-control">
+                        <label class="form-label">Número de Documento (Cédula)</label>
+                        <input type="text" name="cedula" required class="form-control">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Fecha de Nacimiento</label>
-                        <input type="date" name="fecha_nacimiento" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Lugar de Nacimiento</label>
-                        <input type="text" name="lugar_nacimiento" placeholder="Ciudad / Municipio" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Sexo</label>
-                        <select name="sexo" required class="form-select">
-                            <option value="Masculino">Masculino</option>
-                            <option value="Femenino">Femenino</option>
-                            <option value="Otro">Otro / Intersexual</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Estado Civil</label>
-                        <select name="estado_civil" class="form-select">
-                            <option value="Soltero/a">Soltero/a</option>
-                            <option value="Casado/a">Casado/a</option>
-                            <option value="Unión Libre">Unión Libre</option>
-                            <option value="Divorciado/a">Divorciado/a</option>
-                            <option value="Viudo/a">Viudo/a</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-8">
-                        <label class="form-label">Dirección de Residencia</label>
-                        <input type="text" name="direccion" placeholder="Ej: Calle 45 #12-34" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Ciudad</label>
-                        <input type="text" name="ciudad" placeholder="Ej: Bogotá" required class="form-control">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" name="correo" required class="form-control">
                     </div>
                 </div>
 
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label">Teléfono Fijo</label>
-                        <input type="tel" name="telefono" placeholder="Opcional" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Celular</label>
-                        <input type="tel" name="celular" placeholder="Número celular" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Correo Electrónico Personal</label>
-                        <input type="email" name="correo_personal" placeholder="ejemplo@correo.com" required class="form-control">
-                    </div>
-                </div>
-
-                <!-- BLOQUE 2: INFORMACIÓN PROFESIONAL -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-graduation-cap"></i> 2. Información Profesional</h4>
-                <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label">Profesión</label>
-                        <input type="text" name="profesion" placeholder="Ej: Médico, Psicólogo" required class="form-control">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Especialidad (Si aplica)</label>
-                        <input type="text" name="especialidad" placeholder="Ej: Psiquiatría Infantil" class="form-control">
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Nivel Académico</label>
-                        <div class="d-flex flex-column gap-1">
-                            <label><input type="radio" name="nivel_academico" value="Técnico"> Técnico</label>
-                            <label><input type="radio" name="nivel_academico" value="Tecnólogo"> Tecnólogo</label>
-                            <label><input type="radio" name="nivel_academico" value="Profesional" checked> Profesional</label>
-                            <label><input type="radio" name="nivel_academico" value="Especialización"> Especialización</label>
-                            <label><input type="radio" name="nivel_academico" value="Maestría"> Maestría</label>
-                            <label><input type="radio" name="nivel_academico" value="Doctorado"> Doctorado</label>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <label class="form-label fw-bold">Área o Servicio Asignado</label>
-                        <div class="row">
-                            {% set areas = ['Psiquiatría', 'Psicología', 'Enfermería', 'Trabajo Social', 'Terapia Ocupacional', 'Farmacia', 'Administración', 'Talento Humano', 'Facturación', 'Sistemas', 'Mantenimiento', 'Seguridad'] %}
-                            {% for area in areas %}
-                            <div class="col-md-4 mb-2">
-                                <label><input type="radio" name="area_servicio" value="{{ area }}" {% if loop.first %}checked{% endif %}> {{ area }}</label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        <div class="mt-2">
-                            <input type="text" name="area_servicio_otro" placeholder="Otro servicio..." class="form-control">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label">Universidad o Institución</label>
-                        <input type="text" name="universidad" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tarjeta Profesional</label>
-                        <input type="text" name="tarjeta_profesional" placeholder="No. Registro" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Fecha de Expedición (T.P)</label>
-                        <input type="date" name="tp_fecha_expedicion" class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Entidad que la expide</label>
-                        <input type="text" name="tp_entidad" placeholder="Ej: MinSalud" class="form-control">
-                    </div>
-                </div>
-
-                <!-- BLOQUE 3: INFORMACIÓN LABORAL -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-briefcase"></i> 3. Información Laboral</h4>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Tipo de Contratación</label>
-                        <select name="tipo_contratacion" class="form-select">
-                            <option value="Término fijo">Término fijo</option>
-                            <option value="Término indefinido">Término indefinido</option>
-                            <option value="Prestación de servicios">Prestación de servicios</option>
-                            <option value="Temporal">Temporal</option>
-                            <option value="Aprendiz">Aprendiz</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Fecha de Ingreso</label>
-                        <input type="date" name="fecha_ingreso" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Jornada Laboral</label>
-                        <select name="jornada_laboral" class="form-select">
-                            <option value="Diurna">Diurna</option>
-                            <option value="Nocturna">Nocturna</option>
-                            <option value="Mixta">Mixta</option>
-                            <option value="Turnos rotativos">Turnos rotativos</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label">Jefe Inmediato</label>
-                        <input type="text" name="jefe_inmediato" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Dependencia</label>
-                        <input type="text" name="dependencia" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Sede Hospitalaria</label>
-                        <input type="text" name="sede" placeholder="Ej: Sede Principal Norte" class="form-control">
-                    </div>
-                </div>
-
-                <!-- BLOQUE 4: CREDENCIALES DEL SISTEMA -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-lock"></i> 4. Información para el Sistema</h4>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Usuario Asignado (Login)</label>
-                        <input type="text" name="username" placeholder="Ej: jgomez" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">Contraseña Temporal</label>
-                        <input type="password" name="password" placeholder="********" required class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Correo Institucional</label>
-                        <input type="email" name="correo_institucional" placeholder="usuario@sigap.com" required class="form-control">
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Rol dentro del Sistema</label>
-                    <div class="row">
-                        {% set roles = [
-                            ('administrador', 'Administrador'), ('psiquiatra', 'Médico Psiquiatra'), 
-                            ('psicologo', 'Psicólogo'), ('enfermeria', 'Enfermería'), 
-                            ('administrativo', 'Administrativo'), ('recursos_humanos', 'Recursos Humanos'), 
-                            ('facturacion', 'Facturación'), ('sistemas', 'Sistemas'), 
-                            ('nutricionista', 'Nutricionista'), ('seguridad', 'Seguridad')
-                        ] %}
-                        {% for val, label in roles %}
-                        <div class="col-md-3 mb-2">
-                            <label><input type="radio" name="rol_sistema" value="{{ val }}" {% if val == 'psiquiatra' %}checked{% endif %}> {{ label }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- BLOQUE 5: CERTIFICACIONES Y DOCUMENTOS ADJUNTOS DINÁMICOS -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-folder-open"></i> 5. Certificaciones y Documentación Entregada</h4>
-                <p class="text-muted small mb-3">Al marcar la casilla, se abrirá automáticamente un campo para cargar el archivo digital.</p>
-                
-                <div class="row g-3 mb-4">
-                    {% set docs = [
-                        ('doc_hoja_vida', 'Hoja de vida'),
-                        ('doc_identidad', 'Documento de identidad'),
-                        ('doc_diploma', 'Diploma profesional'),
-                        ('doc_acta', 'Acta de grado'),
-                        ('doc_tarjeta', 'Tarjeta profesional'),
-                        ('doc_cert_laboral', 'Certificados laborales'),
-                        ('doc_cert_academico', 'Certificados académicos'),
-                        ('doc_eps', 'Afiliación EPS'),
-                        ('doc_pensiones', 'Afiliación Fondo de Pensiones'),
-                        ('doc_arl', 'ARL'),
-                        ('doc_medico_ocup', 'Examen médico ocupacional'),
-                        ('doc_antecedentes', 'Certificado de antecedentes'),
-                        ('doc_contrato', 'Contrato Laboral')
-                    ] %}
-
-                    {% for id, label in docs %}
-                    <div class="col-md-4">
-                        <div class="p-3 border rounded bg-light">
-                            <label class="form-check-label fw-semibold">
-                                <input type="checkbox" id="chk_{{ id }}" name="entregado_{{ id }}" class="form-check-input me-1" onchange="conmutarAdjunto('{{ id }}')"> {{ label }}
-                            </label>
-                            <div id="wrapper_{{ id }}" style="display: none;" class="mt-2">
-                                <input type="file" name="file_{{ id }}" class="form-control form-control-sm">
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- BLOQUE 6: CONTACTO DE EMERGENCIA -->
-                <h4 class="text-primary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-ambulance"></i> 6. Contacto de Emergencia</h4>
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label">Nombre Completo</label>
-                        <input type="text" name="emergencia_nombre" placeholder="Nombre de contacto" required class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Parentesco</label>
-                        <input type="text" name="emergencia_parentesco" placeholder="Ej: Cónyuge, Padre" required class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Teléfono / Celular</label>
-                        <input type="tel" name="emergencia_telefono" placeholder="Número telefónico" required class="form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" name="emergencia_direccion" placeholder="Dirección de residencia" class="form-control">
+                        <input type="password" name="password" required class="form-control">
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-success w-100 py-3 fw-bold fs-5 mt-3">
-                    <i class="fas fa-save"></i> Registrar Empleado en el Sistema
+                    <i class="fas fa-save"></i> Guardar Empleado
                 </button>
             </form>
 
             <!-- FORMULARIO DE PACIENTE -->
-            <div id="form_paciente" style="display: none;" class="text-center py-5">
-                <h4 class="text-secondary"><i class="fas fa-user-injured fa-2x mb-2 d-block"></i> Registro Clínico de Paciente</h4>
-                <p class="text-muted">Cargando los campos clínicos para la apertura de expediente...</p>
-            </div>
-        </div>
+            <form id="form_paciente" method="POST" action="{{ url_for('usuarios.crear_usuario') }}" style="display: none;">
+                <input type="hidden" name="id_rol" value="4">
+                <h4 class="text-secondary fw-bold border-bottom pb-2 mb-3 mt-4"><i class="fas fa-user-injured"></i> Registro Clínico de Paciente</h4>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombres</label>
+                        <input type="text" name="nombres" required class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Apellidos</label>
+                        <input type="text" name="apellidos" required class="form-control">
+                    </div>
+                </div>
 
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de Documento</label>
+                        <select name="tipo_documento" class="form-select">
+                            <option value="CC">Cédula de Ciudadanía (CC)</option>
+                            <option value="TI">Tarjeta de Identidad (TI)</option>
+                            <option value="CE">Cédula de Extranjería (CE)</option>
+                            <option value="RC">Registro Civil (RC)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Número de Documento</label>
+                        <input type="text" name="cedula" required class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Correo Electrónico (Opcional)</label>
+                        <input type="email" name="correo" class="form-control">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">EPS / Aseguradora</label>
+                        <input type="text" name="eps" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contacto de Emergencia</label>
+                        <input type="text" name="contacto_emergencia" class="form-control">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label class="form-label">Observaciones / Motivo de Ingreso</label>
+                        <textarea name="observaciones" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <input type="hidden" name="password" value="Temporal2026*">
+
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-5 mt-3">
+                    <i class="fas fa-save"></i> Registrar Paciente
+                </button>
+            </form>
+        </div>
     </div>
 
 </div>
 
-<!-- SCRIPTS DE INTERACCIÓN -->
 <script>
     function mostrarVista(vista) {
         const vPrincipal = document.getElementById('vista_principal');
@@ -500,16 +260,6 @@
         } else {
             formEmpleado.style.display = 'none';
             formPaciente.style.display = 'none';
-        }
-    }
-
-    function conmutarAdjunto(id) {
-        const chk = document.getElementById('chk_' + id);
-        const wrapper = document.getElementById('wrapper_' + id);
-        if (chk.checked) {
-            wrapper.style.display = 'block';
-        } else {
-            wrapper.style.display = 'none';
         }
     }
 </script>

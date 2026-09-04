@@ -1,0 +1,99 @@
+{% extends 'layout.html' %}
+
+{% block contenido %}
+
+<div class="auditoria-container">
+
+    <div class="auditoria-titulo">
+        <h3>Auditoría del Sistema</h3>
+        <p>Registro histórico de acciones realizadas en la plataforma.</p>
+    </div>
+
+    <div class="modulo">
+
+        <div class="modulo-header">
+            <h5>Bitácora de eventos</h5>
+            <span class="contador">
+                {{ logs|length }}
+                registro{% if logs|length != 1 %}s{% endif %}
+            </span>
+        </div>
+
+        <div class="modulo-body">
+
+            {% if logs %}
+
+                <table class="tabla-auditoria">
+
+                    <thead>
+                        <tr>
+                            <th>Fecha y hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla afectada</th>
+                            <th>Registro</th>
+                            <th>Detalle</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for log in logs %}
+
+                        <tr>
+                            <td>{{ log.fecha_hora }}</td>
+
+                            <td>
+                                {% if log.nombres %}
+                                    {{ log.nombres }} {{ log.apellidos }}
+                                {% else %}
+                                    Usuario eliminado
+                                {% endif %}
+                            </td>
+
+                            <td>{{ log.accion }}</td>
+
+                            <td>{{ log.tabla_afectada }}</td>
+
+                            <td>
+                                {% if log.registro_id %}
+                                    #{{ log.registro_id }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if log.datos_nuevos and log.datos_nuevos.detalle %}
+                                    {{ log.datos_nuevos.detalle }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>{{ log.direccion_ip or '—' }}</td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <div class="sin-registros">
+                    <strong>No hay registros de auditoría</strong>
+                    Aún no se han registrado eventos en el sistema.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

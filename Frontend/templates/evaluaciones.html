@@ -1,8 +1,387 @@
 {% extends 'layout.html' %}
 
 {% block contenido %}
-<div class="p-4">
-    <h3 style="color: var(--azul-medio); font-family: 'Raleway', sans-serif;">Evaluaciones</h3>
-    <p class="text-muted">Módulo de evaluaciones clínicas del paciente.</p>
+
+<div class="evaluaciones-container">
+
+    <!-- =========================================
+         ENCABEZADO
+    ========================================== -->
+
+    <div class="evaluaciones-titulo">
+
+        <h3>
+            Evaluaciones clínicas
+        </h3>
+
+        <p>
+            Registro y seguimiento de las evaluaciones realizadas al paciente.
+        </p>
+
+    </div>
+
+
+    <!-- ==========================================================
+         1. ESCALAS PSICOMÉTRICAS
+    =========================================================== -->
+
+    <div class="modulo">
+
+        <div class="modulo-header">
+
+            <h5>
+                Escalas Psicométricas
+            </h5>
+
+            <span class="contador">
+                {{ evaluaciones|length }}
+                registro{% if evaluaciones|length != 1 %}s{% endif %}
+            </span>
+
+        </div>
+
+
+        <div class="modulo-body">
+
+            {% if evaluaciones %}
+
+                {% for evaluacion in evaluaciones %}
+
+                <div class="escala-item">
+
+                    <!-- CABECERA -->
+
+                    <div class="escala-header">
+
+                        <div>
+
+                            <div class="escala-nombre">
+                                {{ evaluacion.nombre_escala }}
+                            </div>
+
+                            <div class="escala-paciente">
+
+                                {{ evaluacion.primer_nombre }}
+
+                                {% if evaluacion.segundo_nombre %}
+                                    {{ evaluacion.segundo_nombre }}
+                                {% endif %}
+
+                                {{ evaluacion.primer_apellido }}
+
+                                {% if evaluacion.segundo_apellido %}
+                                    {{ evaluacion.segundo_apellido }}
+                                {% endif %}
+
+                                · Atención #{{ evaluacion.id_atencion }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="escala-fecha">
+
+                            {{ evaluacion.fecha_aplicacion }}
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- INFORMACIÓN -->
+
+                    <div class="escala-info">
+
+                        <div>
+
+                            <div class="info-label">
+                                Puntaje total
+                            </div>
+
+                            <div class="puntaje">
+                                {{ evaluacion.puntaje_total }}
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="info-label">
+                                Clasificación de riesgo
+                            </div>
+
+                            <div>
+
+                                {% if evaluacion.clasificacion_riesgo %}
+
+                                    <span class="clasificacion">
+                                        {{ evaluacion.clasificacion_riesgo }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="info-value">
+                                        No registrada
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+                            <div class="info-label">
+                                Atención
+                            </div>
+
+                            <div class="info-value">
+                                #{{ evaluacion.id_atencion }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- RESULTADO -->
+
+                    {% if evaluacion.resultado_json %}
+
+                    <div class="resultado-box">
+
+                        <div class="resultado-titulo">
+                            Resultado de la evaluación
+                        </div>
+
+                        <pre>{{ evaluacion.resultado_json }}</pre>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="sin-registros">
+
+                    <strong>
+                        No hay escalas psicométricas
+                    </strong>
+
+                    No se han registrado evaluaciones psicométricas.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ==========================================================
+         2. EXAMEN DEL ESTADO MENTAL
+    =========================================================== -->
+
+    <div class="modulo">
+
+        <div class="modulo-header">
+
+            <h5>
+                Examen del Estado Mental
+            </h5>
+
+            <span class="contador">
+                {{ eem|length }}
+                registro{% if eem|length != 1 %}s{% endif %}
+            </span>
+
+        </div>
+
+
+        <div class="modulo-body">
+
+            {% if eem %}
+
+                {% for examen in eem %}
+
+                <!-- PACIENTE -->
+
+                <div class="paciente-header">
+
+                    <div>
+
+                        <div class="info-label">
+                            Paciente
+                        </div>
+
+                        <div class="paciente-nombre">
+
+                            {{ examen.primer_nombre }}
+
+                            {% if examen.segundo_nombre %}
+                                {{ examen.segundo_nombre }}
+                            {% endif %}
+
+                            {{ examen.primer_apellido }}
+
+                            {% if examen.segundo_apellido %}
+                                {{ examen.segundo_apellido }}
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="paciente-atencion">
+
+                        Atención #{{ examen.id_atencion }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- DATOS DEL EXAMEN -->
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Porte y actitud
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.porte_actitud or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Conciencia y orientación
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.conciencia_orientacion or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Afecto
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.afecto or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Pensamiento - curso
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.pensamiento_curso or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Pensamiento - contenido
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.pensamiento_contenido or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Sensopercepción
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.sensopercepcion or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Juicio y raciocinio
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.juicio_raciocinio or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                <div class="eem-item">
+
+                    <div class="eem-label">
+                        Introspección
+                    </div>
+
+                    <div class="eem-value">
+                        {{ examen.introspeccion or 'No registrado' }}
+                    </div>
+
+                </div>
+
+
+                {% if not loop.last %}
+                    <hr class="my-4">
+                {% endif %}
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="sin-registros">
+
+                    <strong>
+                        No hay Exámenes del Estado Mental
+                    </strong>
+
+                    No se han registrado exámenes del estado mental.
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
 </div>
+
 {% endblock %}

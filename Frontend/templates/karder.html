@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+
+{% block contenido %}
+<div class="container-fluid px-4 py-3">
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0 text-primary">
+                <i class="fas fa-pills me-2"></i>Kardex de Medicamentos
+            </h2>
+            <p class="text-muted mb-0 small">Control y administración de prescripciones activas</p>
+        </div>
+        <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevaPrescripcion">
+            <i class="fas fa-plus-circle me-1"></i> Nueva Prescripción
+        </button>
+    </div>
+
+    <!-- TABLA DE KARDEX -->
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="text-muted small">
+                            <th>Paciente</th>
+                            <th>Medicamento</th>
+                            <th>Dosis</th>
+                            <th>Frecuencia</th>
+                            <th>Vía</th>
+                            <th>Horario Programado</th>
+                            <th>Estado</th>
+                            <th class="text-end pe-4">Acción / Reporte</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prescripciones %}
+                        <tr>
+                            <td class="fw-bold">{{ item.paciente_nombre }}</td>
+                            <td>{{ item.medicamento_nombre }}</td>
+                            <td>{{ item.dosis }}</td>
+                            <td>{{ item.frecuencia }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.via }}</span></td>
+                            <td>{{ item.horario_programado }}</td>
+                            <td>
+                                {% if item.estado == 'Pendiente' %}
+                                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">
+                                        <i class="fas fa-clock me-1"></i> Pendiente
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success px-3 py-2 rounded-pill">
+                                        <i class="fas fa-check-circle me-1"></i> Administrado
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if item.estado == 'Pendiente' %}
+                                    <button class="btn btn-primary btn-sm px-3 fw-bold" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalAdministrar"
+                                            data-id="{{ item.id }}"
+                                            data-paciente="{{ item.paciente_nombre }}"
+                                            data-medicamento="{{ item.medicamento_nombre }} ({{ item.dosis }})">
+                                        <i class="fas fa-syringe me-1"></i> Administrar
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                        <i class="fas fa-check me-1"></i> Dosis Dada: Registrada
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 1: AÑADIR PRESCRIPCIÓN MÉDICA -->
+<div class="modal fade" id="modalNuevaPrescripcion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-prescription-bottle-alt me-2"></i>Añadir Prescripción Médica
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('kardex.nueva_prescripcion') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Paciente</label>
+                        <select class="form-select" name="paciente_id" required>
+                            <option value="" selected disabled>-- Seleccione un paciente --</option>
+                            {% for p in pacientes %}
+                                <option value="{{ p.id }}">{{ p.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Medicamento</label>
+                        <select class="form-select" name="medicamento_id" required>
+                            <option value="" selected disabled>-- Seleccione un medicamento --</option>
+                            {% for m in medicamentos %}
+                                <option value="{{ m.id }}">{{ m.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Dosis</label>
+                            <input type="text" class="form-control" name="dosis" placeholder="Ej. 500 mg / 1 Tableta" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Frecuencia</label>
+                            <input type="text" class="form-control" name="frecuencia" placeholder="Ej. Cada 8 horas" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Vía de Administración</label>
+                            <select class="form-select" name="via" required>
+                                <option value="Oral" selected>Oral</option>
+                                <option value="Intravenosa">Intravenosa</option>
+                                <option value="Intramuscular">Intramuscular</option>
+                                <option value="Subcutánea">Subcutánea</option>
+                                <option value="Tópica">Tópica</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Horario Programado</label>
+                            <input type="datetime-local" class="form-control" name="horario_programado" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white fw-bold">
+                        <i class="fas fa-save me-1"></i> Guardar Prescripción
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: CONFIRMAR ADMINISTRACIÓN -->
+<div class="modal fade" id="modalAdministrar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-syringe me-2"></i>Confirmar Administración
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formAdministrar" method="POST">
+                <div class="modal-body p-4">
+                    <p class="mb-1"><strong>Paciente:</strong> <span id="modalPacienteNombre" class="text-primary"></span></p>
+                    <p class="mb-3"><strong>Medicamento:</strong> <span id="modalMedicamentoNombre"></span></p>
+
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label fw-bold small">Observaciones / Notas (Opcional):</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Ej. Medicamento suministrado sin novedades"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="fas fa-check me-1"></i> Confirmar y Registrar Hora
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT PARA TRANSFERIR DATOS AL MODAL DE ADMINISTRACIÓN -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalAdmin = document.getElementById('modalAdministrar');
+        if (modalAdmin) {
+            modalAdmin.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const paciente = button.getAttribute('data-paciente');
+                const medicamento = button.getAttribute('data-medicamento');
+
+                document.getElementById('modalPacienteNombre').textContent = paciente;
+                document.getElementById('modalMedicamentoNombre').textContent = medicamento;
+                document.getElementById('formAdministrar').action = '/kardex/administrar/' + id;
+            });
+        }
+    });
+</script>
+{% endblock %}

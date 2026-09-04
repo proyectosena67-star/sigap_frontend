@@ -1212,3 +1212,293 @@ body.dark-mode .user-name-text {
 body.dark-mode .user-role-text {
     color: #cbd5e1 !important;
 }
+
+<style>
+    .evaluaciones-container {
+        padding: 25px 30px;
+    }
+
+    /* ================================
+       ENCABEZADO
+    ================================= */
+
+    .evaluaciones-titulo {
+        margin-bottom: 25px;
+    }
+
+    .evaluaciones-titulo h3 {
+        color: var(--azul-medio);
+        font-family: 'Raleway', sans-serif;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .evaluaciones-titulo p {
+        margin: 5px 0 0;
+        color: #718096;
+    }
+
+
+    /* ================================
+       SECCIONES
+    ================================= */
+
+    .modulo {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+
+    .modulo-header {
+        padding: 16px 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modulo-header h5 {
+        margin: 0;
+        color: #17365d;
+        font-weight: 600;
+    }
+
+    .contador {
+        font-size: 13px;
+        color: #718096;
+    }
+
+    .modulo-body {
+        padding: 20px;
+    }
+
+
+    /* ================================
+       ESCALAS PSICOMÉTRICAS
+    ================================= */
+
+    .escala-item {
+        border: 1px solid #e5eaf0;
+        border-radius: 7px;
+        margin-bottom: 14px;
+        background: #fff;
+    }
+
+    .escala-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .escala-header {
+        padding: 15px 18px;
+
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .escala-nombre {
+        color: #17365d;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .escala-paciente {
+        color: #718096;
+        font-size: 13px;
+        margin-top: 3px;
+    }
+
+    .escala-fecha {
+        color: #718096;
+        font-size: 13px;
+        text-align: right;
+    }
+
+
+    .escala-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+
+        padding: 16px 18px;
+    }
+
+    .info-label {
+        font-size: 11px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .info-value {
+        font-size: 15px;
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+
+    .puntaje {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--azul-medio);
+    }
+
+    .clasificacion {
+        display: inline-block;
+        padding: 5px 11px;
+        border-radius: 5px;
+        background: #eef4fb;
+        color: var(--azul-medio);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+
+    /* RESULTADO */
+
+    .resultado-box {
+        margin: 0 18px 18px;
+        padding: 14px 16px;
+
+        background: #f8fafc;
+        border-left: 3px solid var(--azul-medio);
+
+        border-radius: 4px;
+    }
+
+    .resultado-titulo {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 7px;
+    }
+
+    .resultado-box pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+
+        font-family: inherit;
+        font-size: 14px;
+        color: #334155;
+        line-height: 1.5;
+    }
+
+
+    /* ================================
+       EXAMEN ESTADO MENTAL
+    ================================= */
+
+    .eem-item {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+
+        padding: 15px 0;
+
+        border-bottom: 1px solid #edf1f5;
+    }
+
+    .eem-item:last-child {
+        border-bottom: none;
+    }
+
+    .eem-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .eem-value {
+        color: #334155;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+
+    /* PACIENTE */
+
+    .paciente-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        padding: 15px 18px;
+        margin-bottom: 5px;
+
+        background: #f8fafc;
+        border-radius: 6px;
+    }
+
+    .paciente-nombre {
+        color: #17365d;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .paciente-atencion {
+        color: #718096;
+        font-size: 13px;
+    }
+
+
+    /* ================================
+       SIN REGISTROS
+    ================================= */
+
+    .sin-registros {
+        padding: 35px 20px;
+        text-align: center;
+        color: #718096;
+    }
+
+    .sin-registros strong {
+        display: block;
+        color: #475569;
+        margin-bottom: 5px;
+    }
+
+
+    /* ================================
+       RESPONSIVE
+    ================================= */
+
+    @media (max-width: 768px) {
+
+        .evaluaciones-container {
+            padding: 18px;
+        }
+
+        .escala-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .escala-fecha {
+            text-align: left;
+        }
+
+        .escala-info {
+            grid-template-columns: 1fr;
+        }
+
+        .eem-item {
+            grid-template-columns: 1fr;
+            gap: 5px;
+        }
+
+        .paciente-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+    }

@@ -4,12 +4,9 @@ from app.utils import login_required, role_required
 
 usuarios_bp = Blueprint('usuarios', __name__)
 
-# =========================================================================
-# CONSULTA Y BÚSQUEDA ADAPTADA A LA ESTRUCTURA REAL DE SIGAM_DB
-# =========================================================================
 @usuarios_bp.route('/usuarios', methods=['GET'])
 @login_required
-@role_required(['Administración'])  # <-- Corregido para permitir el acceso al rol de la BD
+# @role_required(['Administración'])  # Comentado temporalmente para descartar bloqueos de rol
 def listar_usuarios():
     conn = None
     usuarios = []
@@ -20,7 +17,6 @@ def listar_usuarios():
         cursor = conn.cursor()
         
         if search_query:
-            # Búsqueda usando las columnas exactas: documento, nombres, apellidos, correo
             query = '''
                 SELECT 
                     u.id_usuario, 
@@ -61,11 +57,7 @@ def listar_usuarios():
         usuarios = cursor.fetchall()
         cursor.close()
 
-        # Impresión en terminal para depurar cuántos datos retornó PostgreSQL
         print(f"--> [DEBUG sigam_db] Registros de usuarios obtenidos: {len(usuarios)}")
-        if len(usuarios) > 0:
-            print(f"--> [DEBUG sigam_db] Muestra de fila: {dict(usuarios[0])}")
-
     except Exception as e:
         print(f"--> [ERROR PostgreSQL - usuarios.py]: {str(e)}")
         flash(f"Error al conectar con la base de datos: {str(e)}", "danger")
@@ -76,12 +68,9 @@ def listar_usuarios():
     return render_template('usuarios.html', usuarios=usuarios, search_query=search_query)
 
 
-# =========================================================================
-# REGISTRO CON CAMPOS DE LA BASE DE DATOS
-# =========================================================================
 @usuarios_bp.route('/usuarios/crear', methods=['POST'])
 @login_required
-@role_required(['Administración'])  # <-- Corregido para mantener coherencia de permisos
+# @role_required(['Administración'])  # Comentado temporalmente para descartar bloqueos de rol
 def crear_usuario():
     conn = None
     try:

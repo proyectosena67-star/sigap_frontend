@@ -8,7 +8,7 @@ evaluaciones_bp = Blueprint('evaluaciones', __name__)
 @login_required
 def evaluaciones():
     lista_evaluaciones = []
-    examen_mental = None
+    lista_eem = []
     conn = None
     try:
         conn = get_db_connection()
@@ -25,21 +25,21 @@ def evaluaciones():
         lista_evaluaciones = cursor.fetchall()
 
         cursor.execute('''
-            SELECT eem.*, p.primer_nombre, p.primer_apellido 
+            SELECT eem.*, p.primer_nombre, p.segundo_nombre, p.primer_apellido, p.segundo_apellido
             FROM examen_estado_mental eem
             JOIN atenciones at ON eem.id_atencion = at.id_atencion
             JOIN historial_clinico h ON at.id_historial = h.id_historial
             JOIN pacientes p ON h.id_paciente = p.id_paciente
-            ORDER BY eem.id_eem DESC LIMIT 1
+            ORDER BY eem.id_eem DESC
         ''')
-        examen_mental = cursor.fetchone()
+        lista_eem = cursor.fetchall()
         cursor.close()
     except Exception as e:
         flash(f"Error al cargar evaluaciones clínicas: {str(e)}", "warning")
     finally:
         if conn: release_db_connection(conn)
 
-    return render_template('evaluaciones.html', evaluaciones=lista_evaluaciones, eem=examen_mental)
+    return render_template('evaluaciones.html', evaluaciones=lista_evaluaciones, eem=lista_eem)
 
 @evaluaciones_bp.route('/guardar_evaluacion', methods=['POST'])
 @login_required
@@ -76,20 +76,28 @@ def guardar_evaluacion():
 @role_required(['Medico', 'Psicologo'])
 def guardar_eem():
     id_atencion = request.form.get('id_atencion', 1)
-    apariencia = request.form.get('apariencia_porte', '')
-    actitud = request.form.get('actitud', '')
-    estado_animo = request.form.get('estado_animo', '')
-    pensamiento = request.form.get('curso_pensamiento', '')
-    percepcion = request.form.get('percepcion', '')
+    porte_actitud = request.form.get('porte_actitud', '')
+    conciencia_orientacion = request.form.get('conciencia_orientacion', '')
+    afecto = request.form.get('afecto', '')
+    pensamiento_curso = request.form.get('pensamiento_curso', '')
+    pensamiento_contenido = request.form.get('pensamiento_contenido', '')
+    sensopercepcion = request.form.get('sensopercepcion', '')
+    juicio_raciocinio = request.form.get('juicio_raciocinio', '')
+    introspeccion = request.form.get('introspeccion', '')
 
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO examen_estado_mental (id_atencion, id_evaluador, apariencia_porte, actitud, estado_animo, curso_pensamiento, percepcion, fecha_registro)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-        ''', (id_atencion, session['usuario_id'], apariencia, actitud, estado_animo, pensamiento, percepcion))
+            INSERT INTO examen_estado_mental
+                (id_atencion, porte_actitud, conciencia_orientacion, afecto,
+                 pensamiento_curso, pensamiento_contenido, sensopercepcion,
+                 juicio_raciocinio, introspeccion)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (id_atencion, porte_actitud, conciencia_orientacion, afecto,
+              pensamiento_curso, pensamiento_contenido, sensopercepcion,
+              juicio_raciocinio, introspeccion))
         
         registrar_auditoria(cursor, session['usuario_id'], 'EEM', f'Examen del estado mental registrado para atención ID {id_atencion}')
         conn.commit()

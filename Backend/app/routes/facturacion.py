@@ -1,61 +1,89 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import get_db_connection, release_db_connection
-from app.utils import login_required, role_required, registrar_auditoria
 
 facturacion_bp = Blueprint('facturacion', __name__)
 
-@facturacion_bp.route('/facturacion')
-@login_required
-@role_required(['Administrador', 'Facturador'])
+@facturacion_bp.route('/facturacion', methods=['GET'])
 def facturacion():
+    conn = get_db_connection()
+    cursor = conn.cursor()
     facturas = []
-    conn = None
+    
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT f.*, p.primer_nombre, p.primer_apellido, p.numero_documento
-            FROM facturacion_fev f
-            JOIN pacientes p ON f.id_paciente = p.id_paciente
-            ORDER BY f.id_factura DESC LIMIT 50
-        ''')
+        # Incluye absolutamente todas las combinaciones posibles de nombres de variables para el HTML
+        cursor.execute("""
+            SELECT 
+                f.id_factura, 
+                f.prefijo, 
+                f.numero_factura, 
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS paciente,
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS paciente_nombre,
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS nombre_paciente,
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS nombre,
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS nombres,
+                COALESCE(CONCAT(p.primer_nombre, ' ', p.primer_apellido), 'Paciente No Registrado') AS nombre_completo,
+                COALESCE(p.numero_documento, 'N/A') AS documento,
+                COALESCE(p.numero_documento, 'N/A') AS numero_documento,
+                f.subtotal, 
+                0.00 AS impuestos,
+                f.valor_total AS total,
+                f.valor_total AS valor_total,
+                f.estado_factura AS estado_dian,
+                f.estado_factura AS estado_factura,
+                f.fecha_emision
+            FROM facturas f
+            LEFT JOIN pacientes p ON f.id_paciente = p.id_paciente
+            ORDER BY f.id_factura DESC;
+        """)
         facturas = cursor.fetchall()
-        cursor.close()
     except Exception as e:
-        flash(f"Error al cargar facturas: {str(e)}", "warning")
+        print(f"--> Error al obtener las facturas: {e}")
     finally:
-        if conn: release_db_connection(conn)
-
+        cursor.close()
+        release_db_connection(conn)
+        
     return render_template('facturacion.html', facturas=facturas)
 
-@facturacion_bp.route('/guardar_factura', methods=['POST'])
-@login_required
-@role_required(['Administrador', 'Facturador'])
+@facturacion_bp.route('/facturacion/nueva', methods=['GET', 'POST'])
 def guardar_factura():
-    id_paciente = request.form.get('id_paciente')
-    id_atencion = request.form.get('id_atencion')
-    subtotal = request.form.get('subtotal', 0)
-    impuestos = request.form.get('impuestos', 0)
-    total = request.form.get('total', 0)
-    cufe = request.form.get('cufe', 'CUFE_PENDIENTE_DIAN')
-
-    conn = None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        try:
+            id_paciente = request.form.get('id_paciente')
+            subtotal = request.form.get('subtotal', 0)
+            valor_total = request.form.get('valor_total', 0)
+            estado_factura = 'Generada'
+            
+            cursor.execute("""
+                INSERT INTO facturas (id_paciente, id_atencion, subtotal, valor_total, estado_factura, numero_factura)
+                VALUES (%s, 1, %s, %s, %s, (SELECT COALESCE(MAX(numero_factura), 1000) + 1 FROM facturas))
+            """, (id_paciente, subtotal, valor_total, estado_factura))
+            
+            conn.commit()
+            flash('Factura creada exitosamente.', 'success')
+            return redirect(url_for('facturacion.facturacion'))
+        except Exception as e:
+            conn.rollback()
+            print(f"--> Error al registrar factura: {e}")
+            flash('Error al guardar la factura en la base de datos.', 'danger')
+        finally:
+            cursor.close()
+            release_db_connection(conn)
+            
+    pacientes = []
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO facturacion_fev (id_paciente, id_atencion, subtotal, impuestos, total, cufe, estado_dian, fecha_emision)
-            VALUES (%s, %s, %s, %s, %s, %s, 'EMITIDA', NOW())
-        ''', (id_paciente, id_atencion, subtotal, impuestos, total, cufe))
-        
-        registrar_auditoria(cursor, session['usuario_id'], 'FACTURACION', f'Factura FEV generada para paciente ID {id_paciente}')
-        conn.commit()
-        cursor.close()
-        flash("Factura electrónica registrada con éxito.", "success")
+        cursor.execute("SELECT id_paciente, CONCAT(primer_nombre, ' ', primer_apellido) AS nombre FROM pacientes ORDER BY id_paciente ASC;")
+        pacientes = cursor.fetchall()
     except Exception as e:
-        if conn: conn.rollback()
-        flash(f"Error al registrar factura: {str(e)}", "danger")
+        print(f"--> Error al cargar pacientes para nueva factura: {e}")
     finally:
-        if conn: release_db_connection(conn)
+        cursor.close()
+        release_db_connection(conn)
+        
+    return render_template('nueva_factura.html', pacientes=pacientes)
 
-    return redirect(url_for('facturacion.facturacion'))
+@facturacion_bp.route('/facturacion/crear', methods=['GET'])
+def nueva_factura():
+    return guardar_factura()

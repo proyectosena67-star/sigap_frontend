@@ -66,11 +66,11 @@
         </div>
 
         <nav class="sidebar-nav">
-            <a href="{{ url_for('pacientes.pacientes') }}" class="nav-item {% if request.path.startswith('/pacientes') %}active{% endif %}">
+            <a href="{{ url_for('pacientes.pacientes') if 'pacientes.pacientes' in url_for.__globals__['current_app'].view_functions else '/pacientes' }}" class="nav-item {% if request.path.startswith('/pacientes') %}active{% endif %}">
                 <i class="fas fa-user-injured"></i>
                 <span>Pacientes</span>
             </a>
-            <a href="{{ url_for('pacientes.historial_clinico') }}" class="nav-item {% if request.path.startswith('/historial') %}active{% endif %}">
+            <a href="{{ url_for('pacientes.historial_clinico') if 'pacientes.historial_clinico' in url_for.__globals__['current_app'].view_functions else '/historial' }}" class="nav-item {% if request.path.startswith('/historial') %}active{% endif %}">
                 <i class="fas fa-notes-medical"></i>
                 <span>Historial Clínico</span>
             </a>
@@ -86,6 +86,13 @@
                 <i class="fas fa-pills"></i>
                 <span>Medicamentos</span>
             </a>
+            
+            <!-- OPCIÓN KARDEX AGREGADA -->
+            <a href="{{ url_for('kardex.kardex') if 'kardex.kardex' in url_for.__globals__['current_app'].view_functions else '/kardex' }}" class="nav-item {% if request.path.startswith('/kardex') %}active{% endif %}">
+                <i class="fas fa-notes-medical"></i>
+                <span>Kardex</span>
+            </a>
+
             <a href="/visitas" class="nav-item {% if request.path.startswith('/visitas') %}active{% endif %}">
                 <i class="fas fa-calendar-alt"></i>
                 <span>Visitas</span>
@@ -134,8 +141,8 @@
                     <i class="fas fa-envelope"></i>
                 </button>
 
-                {% set nombre_usr = usuario_nombre or session.get('usuario') or 'Usuario' %}
-                {% set rol_usr = usuario_rol or session.get('rol') or 'Personal' %}
+                {% set nombre_usr = usuario_nombre or session.get('usuario') or 'Laura' %}
+                {% set rol_usr = usuario_rol or session.get('rol') or 'administrador' %}
                 
                 <!-- PERFIL DE USUARIO -->
                 <div class="user-profile-widget" style="display: flex; align-items: center; gap: 12px; margin-left: 8px;">
@@ -153,7 +160,7 @@
                     </div>
                 </div>
 
-                <!-- BOTÓN SALIR (CORREGIDO A auth.logout) -->
+                <!-- BOTÓN SALIR -->
                 <a href="{{ url_for('auth.logout') }}" title="Cerrar Sesión" style="width: 38px; height: 38px; background-color: #fee2e2; color: #dc2626; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; margin-left: 4px;">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
@@ -162,6 +169,19 @@
 
         <!-- CUERPO DE LAS PÁGINAS -->
         <div class="page-body">
+            
+            <!-- ALERTAS FLASH DE FLASK -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show m-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
             {% block contenido %}
             {% endblock %}
         </div>
